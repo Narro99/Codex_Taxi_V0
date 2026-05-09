@@ -1,0 +1,9 @@
+{
+  "name": "Taxi Empresa",
+  "short_name": "TaxiApp",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#1f4e79",
+  "icons": []
+}
