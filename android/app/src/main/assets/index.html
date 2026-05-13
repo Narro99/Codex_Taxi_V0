@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taxi Empresa - Web + App</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#1f4e79" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Taxi Empresa · Web + App</h1>
+    <p>Organizadores gestionan viajes; viajeros y taxistas los ven desde móvil o web.</p>
+  </header>
+
+  <main class="container">
+    <section class="card full">
+      <h2>Seleccionar perfil</h2>
+      <div class="tabs">
+        <button class="tab active" data-view="organizador">Organizador (Web)</button>
+        <button class="tab" data-view="viajero">Viajero (App/Web móvil)</button>
+        <button class="tab" data-view="taxista">Taxista (App/Web móvil)</button>
+      </div>
+    </section>
+
+    <section id="view-organizador" class="card view">
+      <h2>Panel de Organizador</h2>
+      <form id="trip-form">
+        <label>Empresa
+          <input type="text" id="empresa" required />
+        </label>
+        <label>Viajero
+          <input type="text" id="viajero" required />
+        </label>
+        <label>Domicilio de salida
+          <input type="text" id="domicilio" required />
+        </label>
+        <label>Aeropuerto
+          <select id="aeropuerto" required>
+            <option value="">Seleccione...</option>
+            <option>Madrid-Barajas</option><option>Barcelona-El Prat</option>
+            <option>Ezeiza</option><option>Jorge Chávez</option>
+          </select>
+        </label>
+        <label>Fecha
+          <input type="date" id="fecha" required />
+        </label>
+        <label>Hora
+          <input type="time" id="hora" required />
+        </label>
+        <label>Taxista asignado
+          <select id="taxista" required>
+            <option value="">Seleccione...</option>
+            <option>Ana Pérez</option><option>Carlos Gómez</option>
+            <option>María Rivera</option><option>José Muñoz</option>
+          </select>
+        </label>
+        <button type="submit">Crear viaje</button>
+      </form>
+      <p id="mensaje" class="mensaje"></p>
+      <label>Filtrar por empresa
+        <input type="text" id="filtro-empresa" placeholder="Ej: Acme Corp" />
+      </label>
+      <table>
+        <thead><tr><th>Empresa</th><th>Viajero</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Estado</th></tr></thead>
+        <tbody id="tabla-viajes"></tbody>
+      </table>
+    </section>
+
+    <section id="view-viajero" class="card view hidden">
+      <h2>Mis viajes (Viajero)</h2>
+      <label>Nombre del viajero
+        <input type="text" id="filtro-viajero" placeholder="Ej: Laura Díaz" />
+      </label>
+      <div id="lista-viajero" class="list"></div>
+    </section>
+
+    <section id="view-taxista" class="card view hidden">
+      <h2>Viajes asignados (Taxista)</h2>
+      <label>Nombre del taxista
+        <input type="text" id="filtro-taxista" placeholder="Ej: Ana Pérez" />
+      </label>
+      <div id="lista-taxista" class="list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
