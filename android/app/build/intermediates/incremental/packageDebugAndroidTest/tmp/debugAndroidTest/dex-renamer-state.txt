@@ -1,0 +1,4 @@
+#Wed May 13 18:48:59 CEST 2026
+base.0=C\:\\Users\\danin\\Apps\\Codex_Taxi_V0-main (3)\\Codex_Taxi_V0-main\\android\\app\\build\\intermediates\\dex\\debugAndroidTest\\mergeProjectDexDebugAndroidTest\\0\\classes.dex
+path.0=0/classes.dex
+renamed.0=classes.dex
