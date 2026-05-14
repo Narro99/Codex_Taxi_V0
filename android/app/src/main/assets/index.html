@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Taxi Empresa</title><link rel="stylesheet" href="styles.css" /><link rel="manifest" href="manifest.webmanifest" /></head>
+<body>
+<header><h1>Taxi Empresa</h1></header>
+<main class="container">
+<section id="auth" class="card">
+<h2>Iniciar sesión</h2>
+<p>Usuarios: org1, org2, viajero1, viajero2, taxi1, taxi2 / clave 1234</p>
+<form id="login-form" class="inline"><input id="user" placeholder="usuario" required><input id="pass" type="password" placeholder="contraseña" required><button>Entrar</button></form>
+<p id="auth-msg"></p>
+</section>
+<section id="app" class="hidden">
+<section class="card"><div class="row"><h2 id="panel-title"></h2><button id="logout">Salir</button></div></section>
+<section id="view-organizador" class="card hidden">
+<form id="trip-form"><input id="trip-id" type="hidden"><input id="empresa" placeholder="Empresa" required><input id="viajero" placeholder="Viajero (ej: viajero1)" required><input id="domicilio" placeholder="Domicilio" required><input id="aeropuerto" placeholder="Aeropuerto" required><input id="fecha" type="date" required><input id="hora" type="time" required><input id="taxista" placeholder="Taxista (ej: taxi1)" required><button>Guardar viaje</button></form>
+<p id="mensaje"></p><table><thead><tr><th>Empresa</th><th>Viajero</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Estado</th><th></th></tr></thead><tbody id="tabla"></tbody></table>
+</section>
+<section id="view-viajero" class="card hidden"><h3>Mis viajes</h3><ul id="notif-v"></ul><div id="lista-v"></div></section>
+<section id="view-taxista" class="card hidden"><h3>Viajes asignados</h3><ul id="notif-t"></ul><div id="lista-t"></div></section>
+</section>
+</main><script src="app.js"></script></body></html>
