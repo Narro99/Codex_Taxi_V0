@@ -11,77 +11,68 @@
 <body>
   <header>
     <h1>Taxi Empresa · Web + App</h1>
-    <p>Organizadores gestionan viajes; viajeros y taxistas los ven desde móvil o web.</p>
+    <p>Organizador asigna viajes; viajero y taxista reciben notificaciones y confirman.</p>
   </header>
 
   <main class="container">
-    <section class="card full">
-      <h2>Seleccionar perfil</h2>
-      <div class="tabs">
-        <button class="tab active" data-view="organizador">Organizador (Web)</button>
-        <button class="tab" data-view="viajero">Viajero (App/Web móvil)</button>
-        <button class="tab" data-view="taxista">Taxista (App/Web móvil)</button>
-      </div>
-    </section>
-
-    <section id="view-organizador" class="card view">
-      <h2>Panel de Organizador</h2>
-      <form id="trip-form">
-        <label>Empresa
-          <input type="text" id="empresa" required />
-        </label>
-        <label>Viajero
-          <input type="text" id="viajero" required />
-        </label>
-        <label>Domicilio de salida
-          <input type="text" id="domicilio" required />
-        </label>
-        <label>Aeropuerto
-          <select id="aeropuerto" required>
-            <option value="">Seleccione...</option>
-            <option>Madrid-Barajas</option><option>Barcelona-El Prat</option>
-            <option>Ezeiza</option><option>Jorge Chávez</option>
-          </select>
-        </label>
-        <label>Fecha
-          <input type="date" id="fecha" required />
-        </label>
-        <label>Hora
-          <input type="time" id="hora" required />
-        </label>
-        <label>Taxista asignado
-          <select id="taxista" required>
-            <option value="">Seleccione...</option>
-            <option>Ana Pérez</option><option>Carlos Gómez</option>
-            <option>María Rivera</option><option>José Muñoz</option>
-          </select>
-        </label>
-        <button type="submit">Crear viaje</button>
+    <section id="auth-card" class="card full">
+      <h2>Iniciar sesión</h2>
+      <p class="hint">Usuarios de ejemplo: <b>org1 / 1234</b>, <b>viajero1 / 1234</b>, <b>taxi1 / 1234</b>.</p>
+      <form id="login-form" class="inline-form">
+        <label>Usuario<input id="login-user" required /></label>
+        <label>Contraseña<input id="login-pass" type="password" required /></label>
+        <button type="submit">Entrar</button>
       </form>
-      <p id="mensaje" class="mensaje"></p>
-      <label>Filtrar por empresa
-        <input type="text" id="filtro-empresa" placeholder="Ej: Acme Corp" />
-      </label>
-      <table>
-        <thead><tr><th>Empresa</th><th>Viajero</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Estado</th></tr></thead>
-        <tbody id="tabla-viajes"></tbody>
-      </table>
+      <p id="login-msg" class="mensaje"></p>
     </section>
 
-    <section id="view-viajero" class="card view hidden">
-      <h2>Mis viajes (Viajero)</h2>
-      <label>Nombre del viajero
-        <input type="text" id="filtro-viajero" placeholder="Ej: Laura Díaz" />
-      </label>
-      <div id="lista-viajero" class="list"></div>
-    </section>
+    <section id="app-card" class="hidden">
+      <section class="card full">
+        <div class="row-between">
+          <h2 id="session-title">Panel</h2>
+          <button id="logout-btn" type="button" class="secondary">Cerrar sesión</button>
+        </div>
+      </section>
 
-    <section id="view-taxista" class="card view hidden">
-      <h2>Viajes asignados (Taxista)</h2>
-      <label>Nombre del taxista
-        <input type="text" id="filtro-taxista" placeholder="Ej: Ana Pérez" />
-      </label>
-      <div id="lista-taxista" class="list"></div>
+      <section id="view-organizador" class="card view hidden">
+        <h2>Panel de Organizador</h2>
+        <form id="trip-form">
+          <input type="hidden" id="trip-id" />
+          <label>Empresa<input type="text" id="empresa" required /></label>
+          <label>Viajero<input type="text" id="viajero" required /></label>
+          <label>Domicilio de salida<input type="text" id="domicilio" required /></label>
+          <label>Aeropuerto
+            <select id="aeropuerto" required>
+              <option value="">Seleccione...</option>
+              <option>Madrid-Barajas</option><option>Barcelona-El Prat</option><option>Ezeiza</option><option>Jorge Chávez</option>
+            </select>
+          </label>
+          <label>Fecha<input type="date" id="fecha" required /></label>
+          <label>Hora<input type="time" id="hora" required /></label>
+          <label>Taxista asignado<input type="text" id="taxista" required /></label>
+          <button type="submit">Guardar viaje</button>
+        </form>
+        <p id="mensaje" class="mensaje"></p>
+        <label>Filtrar por empresa<input type="text" id="filtro-empresa" /></label>
+        <table>
+          <thead><tr><th>Empresa</th><th>Viajero</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Confirmaciones</th><th>Acción</th></tr></thead>
+          <tbody id="tabla-viajes"></tbody>
+        </table>
+      </section>
+
+      <section id="view-viajero" class="card view hidden">
+        <h2>Mis viajes (Viajero)</h2>
+        <p class="hint">Recibirás notificaciones y podrás confirmar o ver el estado del taxista.</p>
+        <ul id="notif-viajero" class="notif-list"></ul>
+        <div id="lista-viajero" class="list"></div>
+      </section>
+
+      <section id="view-taxista" class="card view hidden">
+        <h2>Viajes asignados (Taxista)</h2>
+        <p class="hint">Recibirás notificaciones y podrás confirmar o ver el estado del viajero.</p>
+        <ul id="notif-taxista" class="notif-list"></ul>
+        <div id="lista-taxista" class="list"></div>
+      </section>
     </section>
   </main>
 
