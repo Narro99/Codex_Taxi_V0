@@ -1,83 +1,144 @@
-const storageKey = 'viajes_taxi_empresa_v2';
-const form = document.getElementById('trip-form');
-const tabla = document.getElementById('tabla-viajes');
-const mensaje = document.getElementById('mensaje');
-const filtroEmpresa = document.getElementById('filtro-empresa');
-const filtroViajero = document.getElementById('filtro-viajero');
-const filtroTaxista = document.getElementById('filtro-taxista');
-const listaViajero = document.getElementById('lista-viajero');
-const listaTaxista = document.getElementById('lista-taxista');
+const usersKey = 'taxi_users_v1';
+const tripsKey = 'taxi_trips_v4';
+const notifKey = 'taxi_notifs_v4';
+const sessionKey = 'taxi_session_v1';
 
-function viajes() { return JSON.parse(localStorage.getItem(storageKey) || '[]'); }
-function save(data) { localStorage.setItem(storageKey, JSON.stringify(data)); }
+const seedUsers = [
+  { username: 'org1', password: '1234', role: 'organizador', displayName: 'Organizador Demo' },
+  { username: 'viajero1', password: '1234', role: 'viajero', displayName: 'viajero1' },
+  { username: 'taxi1', password: '1234', role: 'taxista', displayName: 'taxi1' }
+];
 
-function renderOrganizador() {
-  const f = filtroEmpresa.value.trim().toLowerCase();
-  const data = viajes().filter(v => !f || v.empresa.toLowerCase().includes(f));
-  tabla.innerHTML = data.length ? '' : '<tr><td colspan="6">Sin viajes.</td></tr>';
+const byId = (id) => document.getElementById(id);
+const read = (k, d = []) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
+const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+function ensureSeed() { if (!localStorage.getItem(usersKey)) write(usersKey, seedUsers); }
+function currentUser() { return JSON.parse(localStorage.getItem(sessionKey) || 'null'); }
+function setSession(u) { localStorage.setItem(sessionKey, JSON.stringify(u)); }
+function clearSession() { localStorage.removeItem(sessionKey); }
+
+function trips() { return read(tripsKey, []); }
+function saveTrips(v) { write(tripsKey, v); }
+function notifs() { return read(notifKey, []); }
+function saveNotifs(v) { write(notifKey, v); }
+
+function pushNotif(role, user, text, tripId) {
+  const all = notifs();
+  all.unshift({ id: crypto.randomUUID(), role, user, text, tripId, date: new Date().toISOString() });
+  saveNotifs(all);
+}
+
+function estado(v) { return `Viajero: ${v.confirmacionViajero ? '✅' : '⏳'} · Taxista: ${v.confirmacionTaxista ? '✅' : '⏳'}`; }
+
+function renderOrganizer() {
+  const filtro = byId('filtro-empresa').value.trim().toLowerCase();
+  const tabla = byId('tabla-viajes');
+  const data = trips().filter(t => !filtro || t.empresa.toLowerCase().includes(filtro));
+  tabla.innerHTML = data.length ? '' : '<tr><td colspan="7">Sin viajes.</td></tr>';
   data.forEach(v => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${v.empresa}</td><td>${v.viajero}</td><td>${v.domicilio} → ${v.aeropuerto}</td><td>${v.fecha} ${v.hora}</td><td>${v.taxista}</td><td>${v.estado}</td>`;
+    tr.innerHTML = `<td>${v.empresa}</td><td>${v.viajero}</td><td>${v.domicilio} → ${v.aeropuerto}</td><td>${v.fecha} ${v.hora}</td><td>${v.taxista}</td><td>${estado(v)}</td><td><button class="edit-btn" data-id="${v.id}">Modificar</button></td>`;
     tabla.appendChild(tr);
   });
+  document.querySelectorAll('.edit-btn').forEach(b => b.onclick = () => loadTrip(b.dataset.id));
 }
 
-function cardTrip(v, isTaxista=false) {
-  const canUpdate = isTaxista && v.estado !== 'Completado';
-  return `<article class="trip"><h3>${v.domicilio} → ${v.aeropuerto}</h3><p><b>Empresa:</b> ${v.empresa}</p><p><b>Fecha:</b> ${v.fecha} ${v.hora}</p><p><b>Taxista:</b> ${v.taxista}</p><p><b>Estado:</b> ${v.estado}</p>${canUpdate ? `<button data-id="${v.id}" class="done-btn">Marcar completado</button>` : ''}</article>`;
+function tripCard(v, role) {
+  const f = role === 'viajero' ? 'confirmacionViajero' : 'confirmacionTaxista';
+  const already = v[f];
+  return `<article class="trip"><h3>${v.domicilio} → ${v.aeropuerto}</h3><p><b>Empresa:</b> ${v.empresa}</p><p><b>Fecha:</b> ${v.fecha} ${v.hora}</p><p><b>Viajero:</b> ${v.viajero}</p><p><b>Taxista:</b> ${v.taxista}</p><p><b>Estado:</b> ${estado(v)}</p>${already ? '<p>Ya confirmaste.</p>' : `<button class="confirm-btn" data-id="${v.id}" data-field="${f}">Confirmar viaje</button>`}</article>`;
 }
 
-function renderViajero() {
-  const f = filtroViajero.value.trim().toLowerCase();
-  const data = viajes().filter(v => !f || v.viajero.toLowerCase().includes(f));
-  listaViajero.innerHTML = data.map(v => cardTrip(v)).join('') || '<p>Sin viajes para este viajero.</p>';
+function renderMobile(role, user) {
+  const key = role === 'viajero' ? 'viajero' : 'taxista';
+  const listId = role === 'viajero' ? 'lista-viajero' : 'lista-taxista';
+  const notifId = role === 'viajero' ? 'notif-viajero' : 'notif-taxista';
+  const mine = trips().filter(v => (v[key] || '').toLowerCase() === user.displayName.toLowerCase());
+  byId(listId).innerHTML = mine.map(v => tripCard(v, role)).join('') || '<p>No tienes viajes.</p>';
+
+  const n = notifs().filter(x => x.role === role && x.user.toLowerCase() === user.displayName.toLowerCase());
+  byId(notifId).innerHTML = n.map(x => `<li>${x.text}</li>`).join('') || '<li>Sin notificaciones.</li>';
 }
 
-function renderTaxista() {
-  const f = filtroTaxista.value.trim().toLowerCase();
-  const data = viajes().filter(v => !f || v.taxista.toLowerCase().includes(f));
-  listaTaxista.innerHTML = data.map(v => cardTrip(v, true)).join('') || '<p>Sin viajes para este taxista.</p>';
-  document.querySelectorAll('.done-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const all = viajes();
-      const t = all.find(v => v.id === btn.dataset.id);
-      if (t) t.estado = 'Completado';
-      save(all);
-      renderAll();
-    });
+function bindConfirm() {
+  document.querySelectorAll('.confirm-btn').forEach(btn => btn.onclick = () => {
+    const all = trips();
+    const t = all.find(x => x.id === btn.dataset.id);
+    if (!t) return;
+    t[btn.dataset.field] = true;
+    saveTrips(all);
+    pushNotif('viajero', t.viajero, `Estado actualizado: ${estado(t)}.`, t.id);
+    pushNotif('taxista', t.taxista, `Estado actualizado: ${estado(t)}.`, t.id);
+    renderApp();
   });
 }
 
-function renderAll() { renderOrganizador(); renderViajero(); renderTaxista(); }
+function loadTrip(id) {
+  const t = trips().find(x => x.id === id); if (!t) return;
+  ['empresa','viajero','domicilio','aeropuerto','fecha','hora','taxista'].forEach(k => byId(k).value = t[k]);
+  byId('trip-id').value = t.id;
+  byId('mensaje').textContent = 'Editando reserva. Al guardar se notifica y se reinician confirmaciones.';
+}
 
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  const nuevo = {
-    id: crypto.randomUUID(),
-    empresa: document.getElementById('empresa').value.trim(),
-    viajero: document.getElementById('viajero').value.trim(),
-    domicilio: document.getElementById('domicilio').value.trim(),
-    aeropuerto: document.getElementById('aeropuerto').value,
-    fecha: document.getElementById('fecha').value,
-    hora: document.getElementById('hora').value,
-    taxista: document.getElementById('taxista').value,
-    estado: 'Programado'
+function saveFromForm() {
+  const id = byId('trip-id').value;
+  const payload = { empresa: byId('empresa').value.trim(), viajero: byId('viajero').value.trim(), domicilio: byId('domicilio').value.trim(), aeropuerto: byId('aeropuerto').value, fecha: byId('fecha').value, hora: byId('hora').value, taxista: byId('taxista').value };
+  const all = trips();
+  if (id) {
+    const i = all.findIndex(x => x.id === id);
+    all[i] = { ...all[i], ...payload, confirmacionViajero: false, confirmacionTaxista: false };
+    saveTrips(all);
+    pushNotif('viajero', payload.viajero, `Reserva modificada (${payload.fecha} ${payload.hora}). Debes reconfirmar.`, id);
+    pushNotif('taxista', payload.taxista, `Reserva modificada (${payload.fecha} ${payload.hora}). Debes reconfirmar.`, id);
+    byId('mensaje').textContent = 'Reserva modificada y notificaciones enviadas.';
+  } else {
+    const n = { id: crypto.randomUUID(), ...payload, confirmacionViajero: false, confirmacionTaxista: false };
+    all.push(n); saveTrips(all);
+    pushNotif('viajero', payload.viajero, `Nuevo viaje asignado (${payload.fecha} ${payload.hora}).`, n.id);
+    pushNotif('taxista', payload.taxista, `Nuevo viaje asignado (${payload.fecha} ${payload.hora}).`, n.id);
+    byId('mensaje').textContent = 'Viaje creado y notificaciones enviadas.';
+  }
+  byId('trip-form').reset(); byId('trip-id').value = '';
+  renderApp();
+}
+
+function setView(role) {
+  ['organizador','viajero','taxista'].forEach(r => byId(`view-${r}`).classList.add('hidden'));
+  byId(`view-${role}`).classList.remove('hidden');
+}
+
+function renderApp() {
+  const user = currentUser();
+  if (!user) return;
+  byId('session-title').textContent = `${user.role.toUpperCase()} · ${user.displayName}`;
+  setView(user.role);
+  if (user.role === 'organizador') renderOrganizer(); else renderMobile(user.role, user);
+  bindConfirm();
+}
+
+function initAuth() {
+  byId('login-form').onsubmit = (e) => {
+    e.preventDefault();
+    const u = byId('login-user').value.trim();
+    const p = byId('login-pass').value;
+    const user = read(usersKey).find(x => x.username === u && x.password === p);
+    if (!user) { byId('login-msg').textContent = 'Credenciales inválidas.'; return; }
+    setSession(user); byId('login-msg').textContent = '';
+    byId('auth-card').classList.add('hidden'); byId('app-card').classList.remove('hidden');
+    renderApp();
   };
-  const all = viajes(); all.push(nuevo); save(all);
-  form.reset(); mensaje.textContent = 'Viaje creado y visible para viajero/taxista.';
-  renderAll();
-});
+  byId('logout-btn').onclick = () => { clearSession(); location.reload(); };
+}
 
-[filtroEmpresa, filtroViajero, filtroTaxista].forEach(el => el.addEventListener('input', renderAll));
+function initEvents() {
+  byId('trip-form').onsubmit = (e) => { e.preventDefault(); saveFromForm(); };
+  byId('filtro-empresa').oninput = renderApp;
+}
 
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-    document.getElementById(`view-${tab.dataset.view}`).classList.remove('hidden');
-  });
-});
-
+ensureSeed();
+initAuth();
+initEvents();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
-renderAll();
+const user = currentUser();
+if (user) { byId('auth-card').classList.add('hidden'); byId('app-card').classList.remove('hidden'); renderApp(); }
