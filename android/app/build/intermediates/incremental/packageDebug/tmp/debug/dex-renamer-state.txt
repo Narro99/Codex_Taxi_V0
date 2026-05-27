@@ -1,4 +1,4 @@
-#Wed May 27 21:57:04 CEST 2026
+#Wed May 27 22:02:53 CEST 2026
 base.0=C\:\\Users\\Usuario\\Documents\\GitHub\\Codex_Taxi_V0\\android\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
 base.1=C\:\\Users\\Usuario\\Documents\\GitHub\\Codex_Taxi_V0\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
 base.2=C\:\\Users\\Usuario\\Documents\\GitHub\\Codex_Taxi_V0\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\7\\classes.dex

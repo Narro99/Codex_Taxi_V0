@@ -1,23 +1,102 @@
 <!doctype html>
 <html lang="es">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Taxi Empresa</title><link rel="stylesheet" href="styles.css" /><link rel="manifest" href="manifest.webmanifest" /></head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taxi Empresa</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+</head>
 <body>
-<header><h1>Taxi Empresa</h1></header>
-<main class="container">
-<section id="auth" class="card">
-<h2>Iniciar sesión</h2>
-<p>Usuarios: org1, org2, viajero1, viajero2, taxi1, taxi2 / clave 1234</p>
-<form id="login-form" class="inline"><input id="user" placeholder="usuario" required><input id="pass" type="password" placeholder="contraseña" required><button>Entrar</button></form>
-<p id="auth-msg"></p>
-</section>
-<section id="app" class="hidden">
-<section class="card"><div class="row"><h2 id="panel-title"></h2><button id="logout">Salir</button></div></section>
-<section id="view-organizador" class="card hidden">
-<form id="trip-form"><input id="trip-id" type="hidden"><input id="empresa" placeholder="Empresa" required><input id="viajero" placeholder="Viajero (ej: viajero1)" required><input id="domicilio" placeholder="Domicilio" required><input id="aeropuerto" placeholder="Aeropuerto" required><input id="fecha" type="date" required><input id="hora" type="time" required><input id="taxista" placeholder="Taxista (ej: taxi1)" required><button>Guardar viaje</button></form>
-<p id="mensaje"></p><table><thead><tr><th>Empresa</th><th>Viajero</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Estado</th><th></th></tr></thead><tbody id="tabla"></tbody></table>
-</section>
-<section id="view-viajero" class="card hidden"><h3>Mis viajes</h3><ul id="notif-v"></ul><div id="lista-v"></div></section>
-<section id="view-taxista" class="card hidden"><h3>Viajes asignados</h3><ul id="notif-t"></ul><div id="lista-t"></div></section>
-</section>
-</main><script src="app.js"></script></body></html>
+  <header><h1>Taxi Empresa</h1></header>
+  <main class="container">
+    <section id="auth" class="card">
+      <h2>Iniciar sesion</h2>
+      <p>Usuarios: org1, org2, viajero1, viajero2, viajero3, viajero4, taxi1, taxi2, taxi3 / clave 1234</p>
+      <form id="login-form" class="inline">
+        <input id="user" placeholder="usuario" required>
+        <input id="pass" type="password" placeholder="contrasena" required>
+        <button>Entrar</button>
+      </form>
+      <p id="auth-msg"></p>
+    </section>
+
+    <section id="app" class="hidden">
+      <section class="card">
+        <div class="row">
+          <div class="brand-row">
+            <span id="company-logo" class="company-logo hidden"></span>
+            <h2 id="panel-title"></h2>
+          </div>
+          <button id="logout">Salir</button>
+        </div>
+      </section>
+
+      <section id="view-organizador" class="card hidden">
+        <nav class="tabs">
+          <button class="tab-btn active" data-tab="asignacion" type="button">Asignacion de viajes</button>
+          <button class="tab-btn" data-tab="historico" type="button">Historico</button>
+        </nav>
+
+        <section id="org-asignacion">
+          <form id="trip-form" class="grid-form">
+            <input id="trip-id" type="hidden">
+            <select id="viajero" required></select>
+            <select id="domicilio" required></select>
+            <div id="new-address-row" class="inline hidden wide">
+              <input id="new-address" placeholder="Nuevo domicilio">
+              <button id="save-address" type="button">Anadir domicilio</button>
+            </div>
+            <input id="aeropuerto" placeholder="Aeropuerto" required>
+            <input id="fecha" type="date" required>
+            <input id="hora" type="time" required>
+            <select id="taxista" required></select>
+            <div id="taxi-status-list" class="status-list wide"></div>
+            <button class="wide">Guardar viaje</button>
+          </form>
+          <p id="mensaje"></p>
+          <table>
+            <thead><tr><th>Persona</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="tabla"></tbody>
+          </table>
+        </section>
+
+        <section id="org-historico" class="hidden">
+          <div class="filters">
+            <select id="f-persona"></select>
+            <input id="f-taxista" placeholder="Filtrar por taxista">
+            <input id="f-viaje" placeholder="Filtrar por viaje, ruta o fecha">
+          </div>
+          <table>
+            <thead><tr><th>Persona</th><th>Taxista</th><th>Viaje</th><th>Fecha</th><th>Estado</th></tr></thead>
+            <tbody id="historial"></tbody>
+          </table>
+        </section>
+      </section>
+
+      <section id="view-viajero" class="card hidden">
+        <h3>Mis viajes</h3>
+        <ul id="notif-v"></ul>
+        <div id="lista-v"></div>
+      </section>
+
+      <section id="view-taxista" class="card hidden">
+        <h3>Viajes asignados</h3>
+        <ul id="notif-t"></ul>
+        <div id="lista-t"></div>
+        <section class="schedule-box">
+          <h3>Horario</h3>
+          <form id="slot-form" class="inline">
+            <input id="slot-fecha" type="date" required>
+            <input id="slot-inicio" type="time" required>
+            <input id="slot-fin" type="time" required>
+            <button>Bloquear franja</button>
+          </form>
+          <ul id="driver-slots" class="slot-list"></ul>
+        </section>
+      </section>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
