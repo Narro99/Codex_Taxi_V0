@@ -1,81 +1,23 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Taxi Empresa - Web + App</title>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#1f4e79" />
-  <link rel="stylesheet" href="styles.css" />
-</head>
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Taxi Empresa</title><link rel="stylesheet" href="styles.css" /><link rel="manifest" href="manifest.webmanifest" /></head>
 <body>
-  <header>
-    <h1>Taxi Empresa · Web + App</h1>
-    <p>Organizador asigna viajes; viajero y taxista reciben notificaciones y confirman.</p>
-  </header>
-
-  <main class="container">
-    <section id="auth-card" class="card full">
-      <h2>Iniciar sesión</h2>
-      <p class="hint">Usuarios de ejemplo: <b>org1 / 1234</b>, <b>viajero1 / 1234</b>, <b>taxi1 / 1234</b>.</p>
-      <form id="login-form" class="inline-form">
-        <label>Usuario<input id="login-user" required /></label>
-        <label>Contraseña<input id="login-pass" type="password" required /></label>
-        <button type="submit">Entrar</button>
-      </form>
-      <p id="login-msg" class="mensaje"></p>
-    </section>
-
-    <section id="app-card" class="hidden">
-      <section class="card full">
-        <div class="row-between">
-          <h2 id="session-title">Panel</h2>
-          <button id="logout-btn" type="button" class="secondary">Cerrar sesión</button>
-        </div>
-      </section>
-
-      <section id="view-organizador" class="card view hidden">
-        <h2>Panel de Organizador</h2>
-        <form id="trip-form">
-          <input type="hidden" id="trip-id" />
-          <label>Empresa<input type="text" id="empresa" required /></label>
-          <label>Viajero<input type="text" id="viajero" required /></label>
-          <label>Domicilio de salida<input type="text" id="domicilio" required /></label>
-          <label>Aeropuerto
-            <select id="aeropuerto" required>
-              <option value="">Seleccione...</option>
-              <option>Madrid-Barajas</option><option>Barcelona-El Prat</option><option>Ezeiza</option><option>Jorge Chávez</option>
-            </select>
-          </label>
-          <label>Fecha<input type="date" id="fecha" required /></label>
-          <label>Hora<input type="time" id="hora" required /></label>
-          <label>Taxista asignado<input type="text" id="taxista" required /></label>
-          <button type="submit">Guardar viaje</button>
-        </form>
-        <p id="mensaje" class="mensaje"></p>
-        <label>Filtrar por empresa<input type="text" id="filtro-empresa" /></label>
-        <table>
-          <thead><tr><th>Empresa</th><th>Viajero</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Confirmaciones</th><th>Acción</th></tr></thead>
-          <tbody id="tabla-viajes"></tbody>
-        </table>
-      </section>
-
-      <section id="view-viajero" class="card view hidden">
-        <h2>Mis viajes (Viajero)</h2>
-        <p class="hint">Recibirás notificaciones y podrás confirmar o ver el estado del taxista.</p>
-        <ul id="notif-viajero" class="notif-list"></ul>
-        <div id="lista-viajero" class="list"></div>
-      </section>
-
-      <section id="view-taxista" class="card view hidden">
-        <h2>Viajes asignados (Taxista)</h2>
-        <p class="hint">Recibirás notificaciones y podrás confirmar o ver el estado del viajero.</p>
-        <ul id="notif-taxista" class="notif-list"></ul>
-        <div id="lista-taxista" class="list"></div>
-      </section>
-    </section>
-  </main>
-
-  <script src="app.js"></script>
-</body>
-</html>
+<header><h1>Taxi Empresa</h1></header>
+<main class="container">
+<section id="auth" class="card">
+<h2>Iniciar sesión</h2>
+<p>Usuarios: org1, org2, viajero1, viajero2, taxi1, taxi2 / clave 1234</p>
+<form id="login-form" class="inline"><input id="user" placeholder="usuario" required><input id="pass" type="password" placeholder="contraseña" required><button>Entrar</button></form>
+<p id="auth-msg"></p>
+</section>
+<section id="app" class="hidden">
+<section class="card"><div class="row"><h2 id="panel-title"></h2><button id="logout">Salir</button></div></section>
+<section id="view-organizador" class="card hidden">
+<form id="trip-form"><input id="trip-id" type="hidden"><input id="empresa" placeholder="Empresa" required><input id="viajero" placeholder="Viajero (ej: viajero1)" required><input id="domicilio" placeholder="Domicilio" required><input id="aeropuerto" placeholder="Aeropuerto" required><input id="fecha" type="date" required><input id="hora" type="time" required><input id="taxista" placeholder="Taxista (ej: taxi1)" required><button>Guardar viaje</button></form>
+<p id="mensaje"></p><table><thead><tr><th>Empresa</th><th>Viajero</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Estado</th><th></th></tr></thead><tbody id="tabla"></tbody></table>
+</section>
+<section id="view-viajero" class="card hidden"><h3>Mis viajes</h3><ul id="notif-v"></ul><div id="lista-v"></div></section>
+<section id="view-taxista" class="card hidden"><h3>Viajes asignados</h3><ul id="notif-t"></ul><div id="lista-t"></div></section>
+</section>
+</main><script src="app.js"></script></body></html>
