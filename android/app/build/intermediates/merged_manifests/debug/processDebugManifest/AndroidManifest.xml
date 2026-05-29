@@ -21,7 +21,6 @@
         android:extractNativeLibs="false"
         android:label="Taxi Empresa"
         android:supportsRtl="true"
-        android:testOnly="true"
         android:theme="@style/Theme.TaxiEmpresa" >
         <activity
             android:name="com.taxiempresa.app.MainActivity"

@@ -35,6 +35,7 @@
       <section id="view-organizador" class="card hidden">
         <nav class="tabs">
           <button class="tab-btn active" data-tab="asignacion" type="button">Asignacion de viajes</button>
+          <button class="tab-btn" data-tab="pendientes" type="button">Viajes pendientes</button>
           <button class="tab-btn" data-tab="historico" type="button">Historico</button>
         </nav>
 
@@ -61,6 +62,13 @@
           </table>
         </section>
 
+        <section id="org-pendientes" class="hidden">
+          <table>
+            <thead><tr><th>Persona</th><th>Taxista</th><th>Viaje</th><th>Fecha</th><th>Pendiente de</th><th></th></tr></thead>
+            <tbody id="pendientes"></tbody>
+          </table>
+        </section>
+
         <section id="org-historico" class="hidden">
           <div class="filters">
             <select id="f-persona"></select>
@@ -81,17 +89,24 @@
       </section>
 
       <section id="view-taxista" class="card hidden">
-        <h3>Viajes asignados</h3>
-        <ul id="notif-t"></ul>
-        <div id="lista-t"></div>
-        <section class="schedule-box">
-          <h3>Horario</h3>
-          <form id="slot-form" class="inline">
-            <input id="slot-fecha" type="date" required>
-            <input id="slot-inicio" type="time" required>
-            <input id="slot-fin" type="time" required>
-            <button>Bloquear franja</button>
-          </form>
+        <nav class="tabs">
+          <button class="driver-tab-btn active" data-driver-tab="viajes" type="button">Viajes asignados</button>
+          <button class="driver-tab-btn" data-driver-tab="calendario" type="button">Calendario</button>
+        </nav>
+
+        <section id="taxi-viajes">
+          <h3>Viajes asignados</h3>
+          <ul id="notif-t"></ul>
+          <div id="lista-t"></div>
+        </section>
+
+        <section id="taxi-calendario" class="hidden">
+          <div class="calendar-head">
+            <button id="prev-week" type="button">Semana anterior</button>
+            <h3 id="week-title">Calendario</h3>
+            <button id="next-week" type="button">Semana siguiente</button>
+          </div>
+          <div id="calendar-grid" class="calendar-grid"></div>
           <ul id="driver-slots" class="slot-list"></ul>
         </section>
       </section>

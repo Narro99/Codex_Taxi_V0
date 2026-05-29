@@ -28,7 +28,8 @@ const K = {
   notifs: 'notifs_v6',
   session: 'session_v2',
   workers: 'workers_v1',
-  slots: 'driver_slots_v1'
+  slots: 'driver_slots_v1',
+  requests: 'trip_requests_v1'
 };
 
 const $ = id => document.getElementById(id);
@@ -42,6 +43,8 @@ const workers = () => read(K.workers, WORKERS);
 const setWorkers = v => write(K.workers, v);
 const slots = () => read(K.slots, []);
 const setSlots = v => write(K.slots, v);
+const requests = () => read(K.requests, []);
+const setRequests = v => write(K.requests, v);
 const session = () => JSON.parse(localStorage.getItem(K.session) || 'null');
 let activeWeekStart = weekStart(new Date());
 
@@ -149,6 +152,7 @@ function setView(role) {
 function setOrgTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   $('org-asignacion').classList.toggle('hidden', tab !== 'asignacion');
+  $('org-solicitudes').classList.toggle('hidden', tab !== 'solicitudes');
   $('org-pendientes').classList.toggle('hidden', tab !== 'pendientes');
   $('org-historico').classList.toggle('hidden', tab !== 'historico');
 }
@@ -158,6 +162,13 @@ function setDriverTab(tab) {
   $('taxi-viajes').classList.toggle('hidden', tab !== 'viajes');
   $('taxi-calendario').classList.toggle('hidden', tab !== 'calendario');
   if (tab === 'calendario') renderCalendar();
+}
+
+function setTravelerTab(tab) {
+  document.querySelectorAll('.traveler-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.travelerTab === tab));
+  $('viajero-viajes').classList.toggle('hidden', tab !== 'viajes');
+  $('viajero-solicitud').classList.toggle('hidden', tab !== 'solicitud');
+  if (tab === 'solicitud') renderTravelerRequests();
 }
 
 function fillWorkerSelect() {
@@ -187,6 +198,15 @@ function fillDriverSelect() {
   renderDriverStatus();
 }
 
+function fillRequestForm() {
+  if (!$('request-home')) return;
+  const w = workerByUser(session().u);
+  const homes = w ? w.homes : [];
+  $('request-home').innerHTML = '<option value="">Domicilio de recogida</option>' + homes.map(h => `<option value="${h}">${h}</option>`).join('');
+  if (homes.length) $('request-home').value = homes[0];
+  $('request-driver').innerHTML = '<option value="">Sin preferencia de taxista</option>' + TAXISTAS.map(t => `<option value="${t.user}">${t.name} (${t.user})</option>`).join('');
+}
+
 function renderDriverStatus() {
   const fecha = $('fecha').value;
   const hora = $('hora').value;
@@ -201,6 +221,7 @@ function renderOrg() {
   fillWorkerSelect();
   fillDriverSelect();
   renderOrgTable();
+  renderOrgRequests();
   renderPendingTrips();
   renderHistory();
 }
@@ -273,10 +294,60 @@ function renderPendingTrips() {
   });
 }
 
+function renderOrgRequests() {
+  const s = session();
+  const body = $('solicitudes-org');
+  const data = requests().filter(r => r.empresaId === s.u && r.status === 'pendiente');
+  body.innerHTML = data.length ? '' : '<tr><td colspan="5">No hay solicitudes pendientes</td></tr>';
+  data.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.viajeroNombre || r.viajero}</td><td>${r.domicilio} - ${r.aeropuerto}<br>${r.fecha} ${r.hora}</td><td>${r.taxistaNombre || 'Sin preferencia'}</td><td>Pendiente de aceptar</td><td><button class="accept-request" data-id="${r.id}">Aceptar</button></td>`;
+    body.appendChild(tr);
+  });
+  document.querySelectorAll('.accept-request').forEach(b => {
+    b.onclick = () => acceptRequest(b.dataset.id);
+  });
+}
+
+function acceptRequest(id) {
+  const allReq = requests();
+  const r = allReq.find(x => x.id === id);
+  if (!r) return;
+  const driver = driverByUser(r.taxista) || TAXISTAS[0];
+  const allTrips = trips();
+  const n = {
+    id: crypto.randomUUID(),
+    empresaId: r.empresaId,
+    empresa: r.empresa,
+    viajero: r.viajero,
+    viajeroNombre: r.viajeroNombre,
+    domicilio: r.domicilio,
+    aeropuerto: r.aeropuerto,
+    fecha: r.fecha,
+    hora: r.hora,
+    taxista: driver.user,
+    taxistaNombre: driver.name,
+    requestId: r.id,
+    cv: true,
+    ct: false
+  };
+  allTrips.push(n);
+  r.status = 'aceptada';
+  r.tripId = n.id;
+  setTrips(allTrips);
+  setRequests(allReq);
+  push('viajero', r.viajero, 'Solicitud aceptada por organizador.', n.id);
+  push('taxista', driver.user, 'Nuevo viaje solicitado por viajero y aceptado por organizador. Confirmar.', n.id);
+  render();
+}
+
 function card(v, role) {
   const f = role === 'viajero' ? 'cv' : 'ct';
   const confirm = v[f] ? '<span class="confirmed-label">Confirmado</span>' : `<button class="confirm" data-id="${v.id}" data-f="${f}">Confirmar</button>`;
-  return `<article class="trip"><p><b>${v.domicilio}</b> - ${v.aeropuerto}</p><p>${v.fecha} ${v.hora} - ${estado(v)}</p><div class="actions">${confirm}<button class="edit-mobile" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></div></article>`;
+  const reassign = role === 'taxista'
+    ? `<div class="inline"><select class="reassign-driver" data-id="${v.id}">${TAXISTAS.filter(t => t.user !== v.taxista).map(t => `<option value="${t.user}">${t.name} (${t.user})</option>`).join('')}</select><button class="reassign-trip" data-id="${v.id}">Asignar a otro taxista</button></div>`
+    : '';
+  return `<article class="trip"><p><b>${v.domicilio}</b> - ${v.aeropuerto}</p><p>${v.fecha} ${v.hora} - ${estado(v)}</p><div class="actions">${confirm}<button class="edit-mobile" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></div>${reassign}</article>`;
 }
 
 function renderMobile(role) {
@@ -308,18 +379,57 @@ function renderMobile(role) {
     if (h === null) return;
     t.domicilio = d || t.domicilio;
     t.hora = h || t.hora;
-    if (b.dataset.role === 'viajero') t.cv = false;
+    if (b.dataset.role === 'viajero') {
+      t.cv = false;
+      t.ct = false;
+    }
     if (b.dataset.role === 'taxista') t.ct = false;
     setTrips(all);
-    push(b.dataset.role, b.dataset.role === 'viajero' ? t.viajero : t.taxista, 'Reserva modificada. Confirma de nuevo la peticion.', t.id);
-    push(b.dataset.role === 'viajero' ? 'taxista' : 'viajero', b.dataset.role === 'viajero' ? t.taxista : t.viajero, `Reserva modificada por ${b.dataset.role}.`, t.id);
+    if (b.dataset.role === 'viajero') {
+      push('viajero', t.viajero, 'Has modificado la reserva. Confirma de nuevo la peticion.', t.id);
+      push('taxista', t.taxista, 'El viajero ha modificado el viaje. Debes aceptar de nuevo.', t.id);
+    } else {
+      push('taxista', t.taxista, 'Reserva modificada. Confirma de nuevo la peticion.', t.id);
+      push('viajero', t.viajero, 'Reserva modificada por taxista.', t.id);
+    }
     render();
+  });
+
+  document.querySelectorAll('.reassign-trip').forEach(b => b.onclick = () => {
+    const select = document.querySelector(`.reassign-driver[data-id="${b.dataset.id}"]`);
+    reassignTrip(b.dataset.id, select.value);
   });
 
   if (role === 'taxista') {
     renderDriverSchedule();
     renderCalendar();
   }
+  if (role === 'viajero') {
+    fillRequestForm();
+    renderTravelerRequests();
+  }
+}
+
+function renderTravelerRequests() {
+  if (!$('request-list')) return;
+  const me = session().u;
+  const list = requests().filter(r => r.viajero === me).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  $('request-list').innerHTML = list.map(r => `<article class="trip"><p><b>${r.domicilio}</b> - ${r.aeropuerto}</p><p>${r.fecha} ${r.hora} - ${r.status}</p><p>Taxista preferido: ${r.taxistaNombre || 'Sin preferencia'}</p></article>`).join('') || '<p>Sin solicitudes</p>';
+}
+
+function reassignTrip(id, newDriverUser) {
+  const driver = driverByUser(newDriverUser);
+  if (!driver) return;
+  const all = trips();
+  const t = all.find(x => x.id === id);
+  if (!t) return;
+  const previous = t.taxista;
+  t.taxista = driver.user;
+  t.taxistaNombre = driver.name;
+  t.ct = false;
+  setTrips(all);
+  push('taxista', driver.user, `Viaje reasignado por ${previous}. Debes aceptar el viaje.`, t.id);
+  render();
 }
 
 function renderDriverSchedule() {
@@ -408,6 +518,7 @@ $('logout').onclick = () => {
 
 document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => setOrgTab(b.dataset.tab));
 document.querySelectorAll('.driver-tab-btn').forEach(b => b.onclick = () => setDriverTab(b.dataset.driverTab));
+document.querySelectorAll('.traveler-tab-btn').forEach(b => b.onclick = () => setTravelerTab(b.dataset.travelerTab));
 $('prev-week').onclick = () => {
   activeWeekStart = addDays(activeWeekStart, -7);
   renderCalendar();
@@ -434,6 +545,38 @@ $('save-address').onclick = () => {
   $('new-address').value = '';
 };
 ['f-persona', 'f-taxista', 'f-viaje'].forEach(id => $(id).addEventListener('input', renderHistory));
+
+$('request-form').onsubmit = e => {
+  e.preventDefault();
+  const worker = workerByUser(session().u);
+  if (!worker) return;
+  const company = companyFor(worker.company);
+  const driver = driverByUser($('request-driver').value);
+  const domicilio = $('request-new-home').value.trim() || $('request-home').value;
+  const all = requests();
+  const r = {
+    id: crypto.randomUUID(),
+    empresaId: worker.company,
+    empresa: company.empresa,
+    viajero: worker.user,
+    viajeroNombre: worker.name,
+    domicilio,
+    aeropuerto: $('request-airport').value.trim(),
+    fecha: $('request-date').value,
+    hora: $('request-time').value,
+    taxista: driver ? driver.user : '',
+    taxistaNombre: driver ? driver.name : '',
+    status: 'pendiente',
+    createdAt: new Date().toISOString()
+  };
+  all.push(r);
+  setRequests(all);
+  push('organizador', worker.company, `Nueva solicitud de viaje de ${worker.name}.`, r.id);
+  $('request-form').reset();
+  $('request-msg').textContent = 'Solicitud enviada al organizador.';
+  fillRequestForm();
+  renderTravelerRequests();
+};
 
 $('trip-form').onsubmit = e => {
   e.preventDefault();

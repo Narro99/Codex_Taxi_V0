@@ -43,6 +43,7 @@ const setWorkers = v => write(K.workers, v);
 const slots = () => read(K.slots, []);
 const setSlots = v => write(K.slots, v);
 const session = () => JSON.parse(localStorage.getItem(K.session) || 'null');
+let activeWeekStart = weekStart(new Date());
 
 function push(role, user, text, id) {
   const n = notifs();
@@ -52,6 +53,25 @@ function push(role, user, text, id) {
 
 function estado(v) {
   return `V:${v.cv ? 'OK' : 'Pendiente'} T:${v.ct ? 'OK' : 'Pendiente'}`;
+}
+
+function pendientesDe(v) {
+  const p = [];
+  if (!v.cv) p.push('viajero');
+  if (!v.ct) p.push('taxista');
+  return p.join(', ');
+}
+
+function isConfirmed(v) {
+  return Boolean(v.cv && v.ct);
+}
+
+function tripDate(v) {
+  return new Date(`${v.fecha}T${v.hora || '00:00'}`);
+}
+
+function isCompleted(v) {
+  return isConfirmed(v) && tripDate(v) <= new Date();
 }
 
 function companyFor(user) {
@@ -73,6 +93,31 @@ function minutes(hora) {
 
 function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd;
+}
+
+function dateKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function weekStart(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d;
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function fmtDate(date) {
+  return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
 }
 
 function driverAvailability(user, fecha, hora, ignoreTripId = '') {
@@ -104,7 +149,15 @@ function setView(role) {
 function setOrgTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   $('org-asignacion').classList.toggle('hidden', tab !== 'asignacion');
+  $('org-pendientes').classList.toggle('hidden', tab !== 'pendientes');
   $('org-historico').classList.toggle('hidden', tab !== 'historico');
+}
+
+function setDriverTab(tab) {
+  document.querySelectorAll('.driver-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.driverTab === tab));
+  $('taxi-viajes').classList.toggle('hidden', tab !== 'viajes');
+  $('taxi-calendario').classList.toggle('hidden', tab !== 'calendario');
+  if (tab === 'calendario') renderCalendar();
 }
 
 function fillWorkerSelect() {
@@ -148,6 +201,7 @@ function renderOrg() {
   fillWorkerSelect();
   fillDriverSelect();
   renderOrgTable();
+  renderPendingTrips();
   renderHistory();
 }
 
@@ -162,22 +216,24 @@ function renderOrgTable() {
     body.appendChild(tr);
   });
   document.querySelectorAll('.edit-org').forEach(b => {
-    b.onclick = () => {
-      const t = trips().find(x => x.id === b.dataset.id);
-      if (!t) return;
-      $('trip-id').value = t.id;
-      $('viajero').value = t.viajero;
-      fillAddressSelect();
-      $('domicilio').value = t.domicilio;
-      $('aeropuerto').value = t.aeropuerto;
-      $('fecha').value = t.fecha;
-      $('hora').value = t.hora;
-      fillDriverSelect();
-      $('taxista').value = t.taxista;
-      renderDriverStatus();
-      setOrgTab('asignacion');
-    };
+    b.onclick = () => editOrgTrip(b.dataset.id);
   });
+}
+
+function editOrgTrip(id) {
+  const t = trips().find(x => x.id === id);
+  if (!t) return;
+  $('trip-id').value = t.id;
+  $('viajero').value = t.viajero;
+  fillAddressSelect();
+  $('domicilio').value = t.domicilio;
+  $('aeropuerto').value = t.aeropuerto;
+  $('fecha').value = t.fecha;
+  $('hora').value = t.hora;
+  fillDriverSelect();
+  $('taxista').value = t.taxista;
+  renderDriverStatus();
+  setOrgTab('asignacion');
 }
 
 function renderHistory() {
@@ -188,6 +244,7 @@ function renderHistory() {
   const body = $('historial');
   const data = trips().filter(t => {
     if (t.empresaId !== s.u) return false;
+    if (!isCompleted(t)) return false;
     if (persona && t.viajero !== persona) return false;
     if (taxista && !`${t.taxista} ${t.taxistaNombre || ''}`.toLowerCase().includes(taxista)) return false;
     const tripText = `${t.id} ${t.domicilio} ${t.aeropuerto} ${t.fecha} ${t.hora}`.toLowerCase();
@@ -201,9 +258,25 @@ function renderHistory() {
   });
 }
 
+function renderPendingTrips() {
+  const s = session();
+  const body = $('pendientes');
+  const data = trips().filter(t => t.empresaId === s.u && !isConfirmed(t));
+  body.innerHTML = data.length ? '' : '<tr><td colspan="6">No hay viajes pendientes de confirmar</td></tr>';
+  data.forEach(v => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${v.viajeroNombre || v.viajero}</td><td>${v.taxistaNombre || v.taxista}</td><td>${v.domicilio} - ${v.aeropuerto}</td><td>${v.fecha} ${v.hora}</td><td>${pendientesDe(v)}</td><td><button data-id="${v.id}" class="edit-pending">Editar</button></td>`;
+    body.appendChild(tr);
+  });
+  document.querySelectorAll('.edit-pending').forEach(b => {
+    b.onclick = () => editOrgTrip(b.dataset.id);
+  });
+}
+
 function card(v, role) {
   const f = role === 'viajero' ? 'cv' : 'ct';
-  return `<article class="trip"><p><b>${v.domicilio}</b> - ${v.aeropuerto}</p><p>${v.fecha} ${v.hora} · ${estado(v)}</p><button class="confirm" data-id="${v.id}" data-f="${f}">Confirmar</button><button class="edit-mobile" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></article>`;
+  const confirm = v[f] ? '<span class="confirmed-label">Confirmado</span>' : `<button class="confirm" data-id="${v.id}" data-f="${f}">Confirmar</button>`;
+  return `<article class="trip"><p><b>${v.domicilio}</b> - ${v.aeropuerto}</p><p>${v.fecha} ${v.hora} - ${estado(v)}</p><div class="actions">${confirm}<button class="edit-mobile" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></div></article>`;
 }
 
 function renderMobile(role) {
@@ -235,15 +308,18 @@ function renderMobile(role) {
     if (h === null) return;
     t.domicilio = d || t.domicilio;
     t.hora = h || t.hora;
-    t.cv = false;
-    t.ct = false;
+    if (b.dataset.role === 'viajero') t.cv = false;
+    if (b.dataset.role === 'taxista') t.ct = false;
     setTrips(all);
-    push('viajero', t.viajero, `Reserva modificada por ${b.dataset.role}. Reconfirmar.`, t.id);
-    push('taxista', t.taxista, `Reserva modificada por ${b.dataset.role}. Reconfirmar.`, t.id);
+    push(b.dataset.role, b.dataset.role === 'viajero' ? t.viajero : t.taxista, 'Reserva modificada. Confirma de nuevo la peticion.', t.id);
+    push(b.dataset.role === 'viajero' ? 'taxista' : 'viajero', b.dataset.role === 'viajero' ? t.taxista : t.viajero, `Reserva modificada por ${b.dataset.role}.`, t.id);
     render();
   });
 
-  if (role === 'taxista') renderDriverSchedule();
+  if (role === 'taxista') {
+    renderDriverSchedule();
+    renderCalendar();
+  }
 }
 
 function renderDriverSchedule() {
@@ -253,6 +329,51 @@ function renderDriverSchedule() {
   document.querySelectorAll('.delete-slot').forEach(b => b.onclick = () => {
     setSlots(slots().filter(s => s.id !== b.dataset.id));
     renderDriverSchedule();
+    renderCalendar();
+  });
+}
+
+function renderCalendar() {
+  if (!$('calendar-grid')) return;
+  const me = session().u;
+  const days = Array.from({ length: 7 }, (_, i) => addDays(activeWeekStart, i));
+  const hours = Array.from({ length: 16 }, (_, i) => `${String(i + 6).padStart(2, '0')}:00`);
+  $('week-title').textContent = `Semana ${fmtDate(days[0])} - ${fmtDate(days[6])}`;
+  let html = '<div class="calendar-cell calendar-corner">Hora</div>';
+  html += days.map(d => `<div class="calendar-cell calendar-day">${d.toLocaleDateString('es-ES', { weekday: 'short' })}<span>${fmtDate(d)}</span></div>`).join('');
+  hours.forEach(hour => {
+    html += `<div class="calendar-cell calendar-hour">${hour}</div>`;
+    days.forEach(day => {
+      const fecha = dateKey(day);
+      const trip = trips().find(t => t.taxista === me && t.fecha === fecha && overlaps(minutes(hour), minutes(hour) + 60, minutes(t.hora), minutes(t.hora) + 60));
+      const slot = slots().find(s => s.taxista === me && s.fecha === fecha && overlaps(minutes(hour), minutes(hour) + 60, minutes(s.inicio), minutes(s.fin)));
+      const cls = trip ? 'has-trip' : slot ? 'blocked' : 'empty';
+      const label = trip ? `${trip.hora} ${trip.viajeroNombre || trip.viajero}` : slot ? `${slot.inicio}-${slot.fin} Bloqueado` : 'Libre';
+      html += `<button class="calendar-cell calendar-slot ${cls}" data-fecha="${fecha}" data-hora="${hour}" data-slot-id="${slot ? slot.id : ''}" type="button">${label}</button>`;
+    });
+  });
+  $('calendar-grid').innerHTML = html;
+  document.querySelectorAll('.calendar-slot').forEach(b => {
+    b.onclick = () => {
+      if (b.dataset.slotId) {
+        if (confirm('Quitar bloqueo de esta franja?')) {
+          setSlots(slots().filter(s => s.id !== b.dataset.slotId));
+          renderCalendar();
+          renderDriverSchedule();
+        }
+        return;
+      }
+      if (b.classList.contains('has-trip')) return;
+      const inicio = prompt('Hora inicio', b.dataset.hora);
+      if (inicio === null) return;
+      const fin = prompt('Hora fin', `${String(Number(inicio.slice(0, 2)) + 1).padStart(2, '0')}:00`);
+      if (fin === null) return;
+      const all = slots();
+      all.push({ id: crypto.randomUUID(), taxista: me, fecha: b.dataset.fecha, inicio, fin, estado: 'ocupado' });
+      setSlots(all);
+      renderCalendar();
+      renderDriverSchedule();
+    };
   });
 }
 
@@ -286,6 +407,15 @@ $('logout').onclick = () => {
 };
 
 document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => setOrgTab(b.dataset.tab));
+document.querySelectorAll('.driver-tab-btn').forEach(b => b.onclick = () => setDriverTab(b.dataset.driverTab));
+$('prev-week').onclick = () => {
+  activeWeekStart = addDays(activeWeekStart, -7);
+  renderCalendar();
+};
+$('next-week').onclick = () => {
+  activeWeekStart = addDays(activeWeekStart, 7);
+  renderCalendar();
+};
 ['fecha', 'hora'].forEach(id => $(id).addEventListener('change', fillDriverSelect));
 $('viajero').addEventListener('change', fillAddressSelect);
 $('domicilio').addEventListener('change', () => {
@@ -343,22 +473,6 @@ $('trip-form').onsubmit = e => {
   $('trip-id').value = '';
   $('mensaje').textContent = 'Guardado.';
   render();
-};
-
-$('slot-form').onsubmit = e => {
-  e.preventDefault();
-  const all = slots();
-  all.push({
-    id: crypto.randomUUID(),
-    taxista: session().u,
-    fecha: $('slot-fecha').value,
-    inicio: $('slot-inicio').value,
-    fin: $('slot-fin').value,
-    estado: 'ocupado'
-  });
-  setSlots(all);
-  $('slot-form').reset();
-  renderDriverSchedule();
 };
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
