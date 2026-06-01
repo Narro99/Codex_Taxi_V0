@@ -33,6 +33,7 @@ const K = {
 };
 
 const $ = id => document.getElementById(id);
+const esc = value => String(value || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const read = (k, d = []) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
 const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 const trips = () => read(K.trips, []);
@@ -130,7 +131,7 @@ function driverAvailability(user, fecha, hora, ignoreTripId = '') {
   const trip = trips().find(t => t.id !== ignoreTripId && t.taxista === user && t.fecha === fecha && overlaps(start, end, minutes(t.hora), minutes(t.hora) + 60));
   if (trip) return { busy: true, reason: `Ocupado con ${trip.viajeroNombre || trip.viajero}` };
   const slot = slots().find(s => s.taxista === user && s.fecha === fecha && s.estado === 'ocupado' && overlaps(start, end, minutes(s.inicio), minutes(s.fin)));
-  if (slot) return { busy: true, reason: `Bloqueado ${slot.inicio}-${slot.fin}` };
+  if (slot) return { busy: true, reason: `${slot.titulo || 'Bloqueado'} ${slot.inicio}-${slot.fin}` };
   return { busy: false, reason: 'Disponible' };
 }
 
@@ -345,9 +346,9 @@ function card(v, role) {
   const f = role === 'viajero' ? 'cv' : 'ct';
   const confirm = v[f] ? '<span class="confirmed-label">Confirmado</span>' : `<button class="confirm" data-id="${v.id}" data-f="${f}">Confirmar</button>`;
   const reassign = role === 'taxista'
-    ? `<div class="inline"><select class="reassign-driver" data-id="${v.id}">${TAXISTAS.filter(t => t.user !== v.taxista).map(t => `<option value="${t.user}">${t.name} (${t.user})</option>`).join('')}</select><button class="reassign-trip" data-id="${v.id}">Asignar a otro taxista</button></div>`
+    ? `<details class="driver-menu"><summary>Asignar a otro conductor</summary><div class="driver-menu-list">${TAXISTAS.filter(t => t.user !== v.taxista).map(t => `<button class="reassign-option" data-id="${v.id}" data-driver="${t.user}" type="button">${t.name}<span>${t.user}</span></button>`).join('')}</div></details>`
     : '';
-  return `<article class="trip"><p><b>${v.domicilio}</b> - ${v.aeropuerto}</p><p>${v.fecha} ${v.hora} - ${estado(v)}</p><div class="actions">${confirm}<button class="edit-mobile" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></div>${reassign}</article>`;
+  return `<article class="trip"><p><b>${esc(v.domicilio)}</b> - ${esc(v.aeropuerto)}</p><p>${esc(v.fecha)} ${esc(v.hora)} - ${estado(v)}</p><div class="actions">${confirm}<button class="edit-mobile ghost" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></div>${reassign}</article>`;
 }
 
 function renderMobile(role) {
@@ -395,9 +396,8 @@ function renderMobile(role) {
     render();
   });
 
-  document.querySelectorAll('.reassign-trip').forEach(b => b.onclick = () => {
-    const select = document.querySelector(`.reassign-driver[data-id="${b.dataset.id}"]`);
-    reassignTrip(b.dataset.id, select.value);
+  document.querySelectorAll('.reassign-option').forEach(b => b.onclick = () => {
+    reassignTrip(b.dataset.id, b.dataset.driver);
   });
 
   if (role === 'taxista') {
@@ -435,12 +435,24 @@ function reassignTrip(id, newDriverUser) {
 function renderDriverSchedule() {
   const me = session().u;
   const list = slots().filter(s => s.taxista === me).sort((a, b) => `${a.fecha}${a.inicio}`.localeCompare(`${b.fecha}${b.inicio}`));
-  $('driver-slots').innerHTML = list.map(s => `<li><span>${s.fecha} ${s.inicio}-${s.fin}</span><button class="delete-slot" data-id="${s.id}">Quitar</button></li>`).join('') || '<li>Sin franjas bloqueadas</li>';
+  $('driver-slots').innerHTML = list.map(s => `<li><span><b>${esc(s.titulo || 'Evento')}</b><small>${s.fecha} ${s.inicio}-${s.fin}</small></span><button class="delete-slot ghost danger" data-id="${s.id}">Quitar</button></li>`).join('') || '<li>Sin eventos propios</li>';
   document.querySelectorAll('.delete-slot').forEach(b => b.onclick = () => {
     setSlots(slots().filter(s => s.id !== b.dataset.id));
     renderDriverSchedule();
     renderCalendar();
   });
+}
+
+function openCalendarEventEditor(fecha, hora, slotId = '') {
+  const form = $('calendar-event-editor');
+  const slot = slotId ? slots().find(s => s.id === slotId) : null;
+  $('event-id').value = slot ? slot.id : '';
+  $('event-date').value = slot ? slot.fecha : fecha;
+  $('event-start').value = slot ? slot.inicio : hora;
+  $('event-end').value = slot ? slot.fin : `${String(Number(hora.slice(0, 2)) + 1).padStart(2, '0')}:00`;
+  $('event-title').value = slot ? (slot.titulo || 'Bloqueado') : '';
+  form.classList.remove('hidden');
+  $('event-title').focus();
 }
 
 function renderCalendar() {
@@ -458,31 +470,19 @@ function renderCalendar() {
       const trip = trips().find(t => t.taxista === me && t.fecha === fecha && overlaps(minutes(hour), minutes(hour) + 60, minutes(t.hora), minutes(t.hora) + 60));
       const slot = slots().find(s => s.taxista === me && s.fecha === fecha && overlaps(minutes(hour), minutes(hour) + 60, minutes(s.inicio), minutes(s.fin)));
       const cls = trip ? 'has-trip' : slot ? 'blocked' : 'empty';
-      const label = trip ? `${trip.hora} ${trip.viajeroNombre || trip.viajero}` : slot ? `${slot.inicio}-${slot.fin} Bloqueado` : 'Libre';
-      html += `<button class="calendar-cell calendar-slot ${cls}" data-fecha="${fecha}" data-hora="${hour}" data-slot-id="${slot ? slot.id : ''}" type="button">${label}</button>`;
+      const label = trip ? `${trip.hora} ${trip.viajeroNombre || trip.viajero}` : slot ? `${slot.inicio}-${slot.fin} ${slot.titulo || 'Evento'}` : '+ Crear evento';
+      html += `<button class="calendar-cell calendar-slot ${cls}" data-fecha="${fecha}" data-hora="${hour}" data-slot-id="${slot ? slot.id : ''}" type="button">${esc(label)}</button>`;
     });
   });
   $('calendar-grid').innerHTML = html;
   document.querySelectorAll('.calendar-slot').forEach(b => {
     b.onclick = () => {
       if (b.dataset.slotId) {
-        if (confirm('Quitar bloqueo de esta franja?')) {
-          setSlots(slots().filter(s => s.id !== b.dataset.slotId));
-          renderCalendar();
-          renderDriverSchedule();
-        }
+        openCalendarEventEditor(b.dataset.fecha, b.dataset.hora, b.dataset.slotId);
         return;
       }
       if (b.classList.contains('has-trip')) return;
-      const inicio = prompt('Hora inicio', b.dataset.hora);
-      if (inicio === null) return;
-      const fin = prompt('Hora fin', `${String(Number(inicio.slice(0, 2)) + 1).padStart(2, '0')}:00`);
-      if (fin === null) return;
-      const all = slots();
-      all.push({ id: crypto.randomUUID(), taxista: me, fecha: b.dataset.fecha, inicio, fin, estado: 'ocupado' });
-      setSlots(all);
-      renderCalendar();
-      renderDriverSchedule();
+      openCalendarEventEditor(b.dataset.fecha, b.dataset.hora);
     };
   });
 }
@@ -526,6 +526,41 @@ $('prev-week').onclick = () => {
 $('next-week').onclick = () => {
   activeWeekStart = addDays(activeWeekStart, 7);
   renderCalendar();
+};
+$('cancel-event').onclick = () => {
+  $('calendar-event-editor').classList.add('hidden');
+  $('calendar-event-editor').reset();
+  $('event-id').value = '';
+};
+$('calendar-event-editor').onsubmit = e => {
+  e.preventDefault();
+  const me = session().u;
+  const id = $('event-id').value;
+  const payload = {
+    taxista: me,
+    fecha: $('event-date').value,
+    inicio: $('event-start').value,
+    fin: $('event-end').value,
+    titulo: $('event-title').value.trim(),
+    estado: 'ocupado'
+  };
+  if (minutes(payload.fin) <= minutes(payload.inicio)) {
+    alert('La hora de fin debe ser posterior al inicio.');
+    return;
+  }
+  const all = slots();
+  if (id) {
+    const i = all.findIndex(s => s.id === id);
+    if (i >= 0) all[i] = { ...all[i], ...payload };
+  } else {
+    all.push({ id: crypto.randomUUID(), ...payload });
+  }
+  setSlots(all);
+  $('calendar-event-editor').reset();
+  $('event-id').value = '';
+  $('calendar-event-editor').classList.add('hidden');
+  renderCalendar();
+  renderDriverSchedule();
 };
 ['fecha', 'hora'].forEach(id => $(id).addEventListener('change', fillDriverSelect));
 $('viajero').addEventListener('change', fillAddressSelect);
