@@ -14,6 +14,11 @@
                   </DisplayDescriptor>
                   <DisplayDescriptor>
                     <option name="displayId" value="1" />
+                    <option name="height" value="1920" />
+                    <option name="width" value="1080" />
+                  </DisplayDescriptor>
+                  <DisplayDescriptor>
+                    <option name="displayId" value="2" />
                     <option name="height" value="1280" />
                     <option name="width" value="720" />
                   </DisplayDescriptor>
@@ -23,15 +28,29 @@
                 <PanelState>
                   <option name="splitPanel">
                     <SplitPanelState>
-                      <option name="proportion" value="0.33428165316581726" />
+                      <option name="proportion" value="0.10000000149011612" />
                       <option name="firstComponent">
                         <PanelState>
-                          <option name="displayId" value="0" />
+                          <option name="splitPanel">
+                            <SplitPanelState>
+                              <option name="proportion" value="0.4571428596973419" />
+                              <option name="firstComponent">
+                                <PanelState>
+                                  <option name="displayId" value="0" />
+                                </PanelState>
+                              </option>
+                              <option name="secondComponent">
+                                <PanelState>
+                                  <option name="displayId" value="1" />
+                                </PanelState>
+                              </option>
+                            </SplitPanelState>
+                          </option>
                         </PanelState>
                       </option>
                       <option name="secondComponent">
                         <PanelState>
-                          <option name="displayId" value="1" />
+                          <option name="displayId" value="2" />
                         </PanelState>
                       </option>
                     </SplitPanelState>
