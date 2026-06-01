@@ -48,6 +48,7 @@ const requests = () => read(K.requests, []);
 const setRequests = v => write(K.requests, v);
 const session = () => JSON.parse(localStorage.getItem(K.session) || 'null');
 let activeWeekStart = weekStart(new Date());
+let pendingDriverConfirmTripId = '';
 
 function push(role, user, text, id) {
   const n = notifs();
@@ -145,6 +146,14 @@ function driverAvailability(user, fecha, hora, ignoreTripId = '') {
   return { busy: false, reason: 'Disponible' };
 }
 
+function availableDriver(fecha, hora, ignoreTripId = '', preferred = '') {
+  const ordered = [
+    ...TAXISTAS.filter(t => t.user === preferred),
+    ...TAXISTAS.filter(t => t.user !== preferred)
+  ];
+  return ordered.find(t => !driverAvailability(t.user, fecha, hora, ignoreTripId).busy) || ordered[0];
+}
+
 function setBadge(id, count) {
   const el = $(id);
   if (!el) return;
@@ -162,6 +171,9 @@ function renderMenuBadges() {
   if (s.r === 'taxista') {
     setBadge('badge-taxi-viajes', trips().filter(t => t.taxista === s.u && !t.ct).length);
   }
+  if (s.r === 'viajero') {
+    setBadge('badge-viajero-viajes', trips().filter(t => t.viajero === s.u && !t.cv).length);
+  }
 }
 
 function statusDot(label, ok) {
@@ -170,7 +182,7 @@ function statusDot(label, ok) {
 
 function durationSummary(v) {
   if (!v.duracionMin && !v.ocupadoMin) return '<span class="muted">Pendiente del taxista</span>';
-  return `<span>${v.duracionMin || '-'} min trayecto<br><small>${v.ocupadoMin || '-'} min ocupado</small></span>`;
+  return `<span>${v.duracionMin || '-'} min trayecto<br><small>Ocupado hasta ${v.ocupadoMin ? addMinutes(v.hora, v.ocupadoMin) : '-'}</small></span>`;
 }
 
 function setView(role) {
@@ -230,7 +242,7 @@ function fillDriverSelect() {
   const fecha = $('fecha').value;
   const hora = $('hora').value;
   const editing = $('trip-id').value;
-  $('taxista').innerHTML = '<option value="">Taxista</option>' + TAXISTAS.map(t => {
+  $('taxista').innerHTML = '<option value="">Automatico segun disponibilidad</option>' + TAXISTAS.map(t => {
     const a = driverAvailability(t.user, fecha, hora, editing);
     return `<option value="${t.user}">${t.name} (${t.user}) - ${a.busy ? 'ocupado' : 'libre'}</option>`;
   }).join('');
@@ -353,7 +365,7 @@ function acceptRequest(id) {
   const allReq = requests();
   const r = allReq.find(x => x.id === id);
   if (!r) return;
-  const driver = driverByUser(r.taxista) || TAXISTAS[0];
+  const driver = availableDriver(r.fecha, r.hora, '', r.taxista);
   const allTrips = trips();
   const n = {
     id: crypto.randomUUID(),
@@ -383,12 +395,33 @@ function acceptRequest(id) {
 
 function card(v, role) {
   const f = role === 'viajero' ? 'cv' : 'ct';
-  const confirm = v[f] ? '<span class="confirmed-label">Confirmado</span>' : `<button class="confirm" data-id="${v.id}" data-f="${f}">Confirmar</button>`;
+  const confirmLabel = role === 'taxista' ? 'Aceptar viaje' : 'Confirmar';
+  const confirm = v[f] ? '<span class="confirmed-label">Confirmado</span>' : `<button class="confirm" data-id="${v.id}" data-f="${f}">${confirmLabel}</button>`;
   const reassign = role === 'taxista'
     ? `<details class="driver-menu"><summary>Asignar a otro conductor</summary><div class="driver-menu-list">${TAXISTAS.filter(t => t.user !== v.taxista).map(t => `<button class="reassign-option" data-id="${v.id}" data-driver="${t.user}" type="button">${t.name}<span>${t.user}</span></button>`).join('')}</div></details>`
     : '';
   const duration = role === 'taxista' && v.ct ? `<p class="muted">Trayecto ${v.duracionMin || '-'} min · ocupado hasta ${v.ocupadoMin ? addMinutes(v.hora, v.ocupadoMin) : '-'}</p>` : '';
-  return `<article class="trip"><p><b>${esc(v.domicilio)}</b> - ${esc(v.aeropuerto)}</p><p>${esc(v.fecha)} ${esc(v.hora)} - ${estado(v)}</p>${duration}<div class="actions">${confirm}<button class="edit-mobile ghost" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></div>${reassign}</article>`;
+  return `<article class="trip"><p><b>${esc(v.domicilio)}</b> - ${esc(v.aeropuerto)}</p><p>${esc(v.fecha)} ${esc(v.hora)} - ${estado(v)}</p>${duration}<div class="actions">${confirm}<button class="edit-address ghost" data-id="${v.id}" data-role="${role}">Modificar domicilio</button><button class="edit-time ghost" data-id="${v.id}" data-role="${role}">Modificar hora</button></div>${reassign}</article>`;
+}
+
+function resetTripConfirmation(t, role) {
+  if (role === 'viajero') {
+    t.cv = false;
+    t.ct = false;
+  }
+  if (role === 'taxista') t.ct = false;
+  delete t.duracionMin;
+  delete t.ocupadoMin;
+}
+
+function notifyTripEdit(t, role, detail) {
+  if (role === 'viajero') {
+    push('viajero', t.viajero, `Has modificado ${detail}. Confirma de nuevo la peticion.`, t.id);
+    push('taxista', t.taxista, `El viajero ha modificado ${detail}. Debes aceptar de nuevo.`, t.id);
+  } else {
+    push('taxista', t.taxista, `Has modificado ${detail}. Confirma de nuevo la peticion.`, t.id);
+    push('viajero', t.viajero, `Reserva modificada por taxista: ${detail}.`, t.id);
+  }
 }
 
 function renderMobile(role) {
@@ -405,18 +438,8 @@ function renderMobile(role) {
     const t = all.find(x => x.id === b.dataset.id);
     if (!t) return;
     if (b.dataset.f === 'ct') {
-      const duracion = prompt('Duracion estimada del trayecto en minutos', t.duracionMin || '30');
-      if (duracion === null) return;
-      const ocupado = prompt('Tiempo total que estaras ocupado en minutos', t.ocupadoMin || duracion || '60');
-      if (ocupado === null) return;
-      const duracionMin = Number(duracion);
-      const ocupadoMin = Number(ocupado);
-      if (!duracionMin || duracionMin <= 0 || !ocupadoMin || ocupadoMin < duracionMin) {
-        alert('Introduce minutos validos. El tiempo ocupado debe ser igual o mayor que la duracion del trayecto.');
-        return;
-      }
-      t.duracionMin = duracionMin;
-      t.ocupadoMin = ocupadoMin;
+      openDriverConfirmModal(t);
+      return;
     }
     t[b.dataset.f] = true;
     setTrips(all);
@@ -425,35 +448,29 @@ function renderMobile(role) {
     render();
   });
 
-  document.querySelectorAll('.edit-mobile').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.edit-address').forEach(b => b.onclick = () => {
     const all = trips();
     const t = all.find(x => x.id === b.dataset.id);
     if (!t) return;
     const d = prompt('Nuevo domicilio', t.domicilio);
     if (d === null) return;
+    t.domicilio = d || t.domicilio;
+    resetTripConfirmation(t, b.dataset.role);
+    setTrips(all);
+    notifyTripEdit(t, b.dataset.role, 'el domicilio');
+    render();
+  });
+
+  document.querySelectorAll('.edit-time').forEach(b => b.onclick = () => {
+    const all = trips();
+    const t = all.find(x => x.id === b.dataset.id);
+    if (!t) return;
     const h = prompt('Nueva hora (HH:MM)', t.hora);
     if (h === null) return;
-    t.domicilio = d || t.domicilio;
     t.hora = h || t.hora;
-    if (b.dataset.role === 'viajero') {
-      t.cv = false;
-      t.ct = false;
-      delete t.duracionMin;
-      delete t.ocupadoMin;
-    }
-    if (b.dataset.role === 'taxista') {
-      t.ct = false;
-      delete t.duracionMin;
-      delete t.ocupadoMin;
-    }
+    resetTripConfirmation(t, b.dataset.role);
     setTrips(all);
-    if (b.dataset.role === 'viajero') {
-      push('viajero', t.viajero, 'Has modificado la reserva. Confirma de nuevo la peticion.', t.id);
-      push('taxista', t.taxista, 'El viajero ha modificado el viaje. Debes aceptar de nuevo.', t.id);
-    } else {
-      push('taxista', t.taxista, 'Reserva modificada. Confirma de nuevo la peticion.', t.id);
-      push('viajero', t.viajero, 'Reserva modificada por taxista.', t.id);
-    }
+    notifyTripEdit(t, b.dataset.role, 'la hora');
     render();
   });
 
@@ -550,6 +567,37 @@ function renderCalendar() {
   });
 }
 
+function updateDriverConfirmPreview() {
+  const t = trips().find(x => x.id === pendingDriverConfirmTripId);
+  if (!t) return;
+  const duration = Number($('confirm-duration').value || 0);
+  const until = duration > 0 ? addMinutes(t.hora, duration) : '--:--';
+  $('confirm-busy-until').textContent = `Ocupado hasta ${until}`;
+  $('confirm-summary').textContent = duration > 0
+    ? `Si aceptas este viaje, tu calendario quedara bloqueado de ${t.hora} a ${until}.`
+    : 'Introduce una duracion estimada para calcular la ocupacion.';
+}
+
+function openDriverConfirmModal(t) {
+  pendingDriverConfirmTripId = t.id;
+  $('driver-confirm-trip-id').value = t.id;
+  $('confirm-origin').textContent = t.domicilio;
+  $('confirm-destination').textContent = t.aeropuerto;
+  $('confirm-date').textContent = t.fecha;
+  $('confirm-time').textContent = t.hora;
+  $('confirm-duration').value = t.duracionMin || 30;
+  $('driver-confirm-title').textContent = `${t.domicilio} - ${t.aeropuerto}`;
+  $('driver-confirm-modal').classList.remove('hidden');
+  updateDriverConfirmPreview();
+  $('confirm-duration').focus();
+}
+
+function closeDriverConfirmModal() {
+  pendingDriverConfirmTripId = '';
+  $('driver-confirm-modal').classList.add('hidden');
+  $('driver-confirm-form').reset();
+}
+
 function render() {
   const s = session();
   if (!s) return;
@@ -625,6 +673,27 @@ $('calendar-event-editor').onsubmit = e => {
   renderCalendar();
   renderDriverSchedule();
 };
+$('confirm-duration').addEventListener('input', updateDriverConfirmPreview);
+$('driver-confirm-close').onclick = closeDriverConfirmModal;
+$('driver-confirm-cancel').onclick = closeDriverConfirmModal;
+$('driver-confirm-form').onsubmit = e => {
+  e.preventDefault();
+  const all = trips();
+  const t = all.find(x => x.id === $('driver-confirm-trip-id').value);
+  const duration = Number($('confirm-duration').value);
+  if (!t || !duration || duration <= 0) {
+    alert('Introduce una duracion estimada valida.');
+    return;
+  }
+  t.duracionMin = duration;
+  t.ocupadoMin = duration;
+  t.ct = true;
+  setTrips(all);
+  push('viajero', t.viajero, `El taxista ha aceptado el viaje. Ocupado hasta ${addMinutes(t.hora, duration)}.`, t.id);
+  push('taxista', t.taxista, `Has aceptado el viaje. Ocupado hasta ${addMinutes(t.hora, duration)}.`, t.id);
+  closeDriverConfirmModal();
+  render();
+};
 ['fecha', 'hora'].forEach(id => $(id).addEventListener('change', fillDriverSelect));
 $('viajero').addEventListener('change', fillAddressSelect);
 $('domicilio').addEventListener('change', () => {
@@ -681,9 +750,10 @@ $('trip-form').onsubmit = e => {
   const s = session();
   const id = $('trip-id').value;
   const worker = workerByUser($('viajero').value);
-  const driver = driverByUser($('taxista').value);
+  let driver = driverByUser($('taxista').value);
   const domicilio = $('domicilio').value === '__new' ? $('new-address').value.trim() : $('domicilio').value;
-  const availability = driverAvailability($('taxista').value, $('fecha').value, $('hora').value, id);
+  if (!driver) driver = availableDriver($('fecha').value, $('hora').value, id);
+  const availability = driverAvailability(driver.user, $('fecha').value, $('hora').value, id);
   if (availability.busy && !confirm(`El taxista figura ocupado: ${availability.reason}. Quieres asignarlo igualmente?`)) return;
   const p = {
     empresaId: s.u,

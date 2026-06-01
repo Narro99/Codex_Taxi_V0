@@ -59,7 +59,7 @@
             <input id="aeropuerto" placeholder="Aeropuerto" required>
             <input id="fecha" type="date" required>
             <input id="hora" type="time" required>
-            <select id="taxista" required></select>
+            <select id="taxista"></select>
             <div id="taxi-status-list" class="status-list wide"></div>
             <button class="wide">Guardar viaje</button>
           </form>
@@ -97,7 +97,7 @@
       <section id="view-viajero" class="card role-shell hidden">
         <nav class="tabs side-menu" aria-label="Menu de viajero">
           <p class="side-title">Viajero</p>
-          <button class="traveler-tab-btn active" data-traveler-tab="viajes" type="button">Mis viajes</button>
+          <button class="traveler-tab-btn active" data-traveler-tab="viajes" type="button">Mis viajes <span id="badge-viajero-viajes" class="badge hidden">0</span></button>
           <button class="traveler-tab-btn" data-traveler-tab="solicitud" type="button">Solicitud de viaje</button>
         </nav>
         <div class="role-content">
@@ -172,6 +172,44 @@
         </section>
         </div>
       </section>
+      <div id="driver-confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="driver-confirm-title">
+        <form id="driver-confirm-form" class="modal-card">
+          <input id="driver-confirm-trip-id" type="hidden">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow dark">Confirmacion del taxista</p>
+              <h3 id="driver-confirm-title">Aceptar viaje</h3>
+            </div>
+            <button id="driver-confirm-close" class="ghost" type="button">Cerrar</button>
+          </div>
+          <div class="route-preview">
+            <div>
+              <span class="route-dot"></span>
+              <p><b>Origen</b><span id="confirm-origin"></span></p>
+            </div>
+            <div>
+              <span class="route-dot end"></span>
+              <p><b>Destino</b><span id="confirm-destination"></span></p>
+            </div>
+          </div>
+          <div class="confirm-grid">
+            <div class="calendar-mini">
+              <strong id="confirm-date"></strong>
+              <span id="confirm-time"></span>
+              <small id="confirm-busy-until">Ocupado hasta --:--</small>
+            </div>
+            <label>
+              Duracion estimada del trayecto (min)
+              <input id="confirm-duration" type="number" min="1" step="1" value="30" required>
+            </label>
+          </div>
+          <p id="confirm-summary" class="muted"></p>
+          <div class="actions">
+            <button type="submit">Aceptar viaje</button>
+            <button id="driver-confirm-cancel" class="ghost" type="button">Cancelar</button>
+          </div>
+        </form>
+      </div>
     </section>
   </main>
   <script src="app.js"></script>
