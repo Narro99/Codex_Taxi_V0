@@ -95,6 +95,16 @@ function minutes(hora) {
   return (h * 60) + (m || 0);
 }
 
+function timeFromMinutes(total) {
+  const h = Math.floor(total / 60) % 24;
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function addMinutes(hora, extra) {
+  return timeFromMinutes(minutes(hora) + Number(extra || 0));
+}
+
 function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd;
 }
@@ -128,11 +138,39 @@ function driverAvailability(user, fecha, hora, ignoreTripId = '') {
   if (!user || !fecha || !hora) return { busy: false, reason: 'Elige fecha y hora' };
   const start = minutes(hora);
   const end = start + 60;
-  const trip = trips().find(t => t.id !== ignoreTripId && t.taxista === user && t.fecha === fecha && overlaps(start, end, minutes(t.hora), minutes(t.hora) + 60));
+  const trip = trips().find(t => t.id !== ignoreTripId && t.taxista === user && t.fecha === fecha && overlaps(start, end, minutes(t.hora), minutes(t.hora) + Number(t.ocupadoMin || 60)));
   if (trip) return { busy: true, reason: `Ocupado con ${trip.viajeroNombre || trip.viajero}` };
   const slot = slots().find(s => s.taxista === user && s.fecha === fecha && s.estado === 'ocupado' && overlaps(start, end, minutes(s.inicio), minutes(s.fin)));
   if (slot) return { busy: true, reason: `${slot.titulo || 'Bloqueado'} ${slot.inicio}-${slot.fin}` };
   return { busy: false, reason: 'Disponible' };
+}
+
+function setBadge(id, count) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = count;
+  el.classList.toggle('hidden', !count);
+}
+
+function renderMenuBadges() {
+  const s = session();
+  if (!s) return;
+  if (s.r === 'organizador') {
+    setBadge('badge-org-solicitudes', requests().filter(r => r.empresaId === s.u && r.status === 'pendiente').length);
+    setBadge('badge-org-pendientes', trips().filter(t => t.empresaId === s.u && !isConfirmed(t)).length);
+  }
+  if (s.r === 'taxista') {
+    setBadge('badge-taxi-viajes', trips().filter(t => t.taxista === s.u && !t.ct).length);
+  }
+}
+
+function statusDot(label, ok) {
+  return `<span class="confirm-state ${ok ? 'ok' : 'ko'}"><span></span>${label}: ${ok ? 'Confirmado' : 'Pendiente'}</span>`;
+}
+
+function durationSummary(v) {
+  if (!v.duracionMin && !v.ocupadoMin) return '<span class="muted">Pendiente del taxista</span>';
+  return `<span>${v.duracionMin || '-'} min trayecto<br><small>${v.ocupadoMin || '-'} min ocupado</small></span>`;
 }
 
 function setView(role) {
@@ -221,13 +259,14 @@ function renderDriverStatus() {
 function renderOrg() {
   fillWorkerSelect();
   fillDriverSelect();
-  renderOrgTable();
+  renderMenuBadges();
   renderOrgRequests();
   renderPendingTrips();
   renderHistory();
 }
 
 function renderOrgTable() {
+  if (!$('tabla')) return;
   const s = session();
   const body = $('tabla');
   const data = trips().filter(t => t.empresaId === s.u);
@@ -284,10 +323,10 @@ function renderPendingTrips() {
   const s = session();
   const body = $('pendientes');
   const data = trips().filter(t => t.empresaId === s.u && !isConfirmed(t));
-  body.innerHTML = data.length ? '' : '<tr><td colspan="6">No hay viajes pendientes de confirmar</td></tr>';
+  body.innerHTML = data.length ? '' : '<tr><td colspan="8">No hay viajes pendientes de confirmar</td></tr>';
   data.forEach(v => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${v.viajeroNombre || v.viajero}</td><td>${v.taxistaNombre || v.taxista}</td><td>${v.domicilio} - ${v.aeropuerto}</td><td>${v.fecha} ${v.hora}</td><td>${pendientesDe(v)}</td><td><button data-id="${v.id}" class="edit-pending">Editar</button></td>`;
+    tr.innerHTML = `<td>${esc(v.viajeroNombre || v.viajero)}</td><td>${esc(v.taxistaNombre || v.taxista)}</td><td>${esc(v.domicilio)} - ${esc(v.aeropuerto)}</td><td>${esc(v.fecha)} ${esc(v.hora)}</td><td>${statusDot('Viajero', v.cv)}</td><td>${statusDot('Taxista', v.ct)}</td><td>${durationSummary(v)}</td><td><button data-id="${v.id}" class="edit-pending">Editar</button></td>`;
     body.appendChild(tr);
   });
   document.querySelectorAll('.edit-pending').forEach(b => {
@@ -348,7 +387,8 @@ function card(v, role) {
   const reassign = role === 'taxista'
     ? `<details class="driver-menu"><summary>Asignar a otro conductor</summary><div class="driver-menu-list">${TAXISTAS.filter(t => t.user !== v.taxista).map(t => `<button class="reassign-option" data-id="${v.id}" data-driver="${t.user}" type="button">${t.name}<span>${t.user}</span></button>`).join('')}</div></details>`
     : '';
-  return `<article class="trip"><p><b>${esc(v.domicilio)}</b> - ${esc(v.aeropuerto)}</p><p>${esc(v.fecha)} ${esc(v.hora)} - ${estado(v)}</p><div class="actions">${confirm}<button class="edit-mobile ghost" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></div>${reassign}</article>`;
+  const duration = role === 'taxista' && v.ct ? `<p class="muted">Trayecto ${v.duracionMin || '-'} min · ocupado hasta ${v.ocupadoMin ? addMinutes(v.hora, v.ocupadoMin) : '-'}</p>` : '';
+  return `<article class="trip"><p><b>${esc(v.domicilio)}</b> - ${esc(v.aeropuerto)}</p><p>${esc(v.fecha)} ${esc(v.hora)} - ${estado(v)}</p>${duration}<div class="actions">${confirm}<button class="edit-mobile ghost" data-id="${v.id}" data-role="${role}">Modificar domicilio/hora</button></div>${reassign}</article>`;
 }
 
 function renderMobile(role) {
@@ -358,11 +398,26 @@ function renderMobile(role) {
   const nl = role === 'viajero' ? 'notif-v' : 'notif-t';
   $(l).innerHTML = mine.map(v => card(v, role)).join('') || '<p>Sin viajes</p>';
   $(nl).innerHTML = notifs().filter(n => n.role === role && n.user === me).map(n => `<li>${n.text}</li>`).join('') || '<li>Sin notificaciones</li>';
+  renderMenuBadges();
 
   document.querySelectorAll('.confirm').forEach(b => b.onclick = () => {
     const all = trips();
     const t = all.find(x => x.id === b.dataset.id);
     if (!t) return;
+    if (b.dataset.f === 'ct') {
+      const duracion = prompt('Duracion estimada del trayecto en minutos', t.duracionMin || '30');
+      if (duracion === null) return;
+      const ocupado = prompt('Tiempo total que estaras ocupado en minutos', t.ocupadoMin || duracion || '60');
+      if (ocupado === null) return;
+      const duracionMin = Number(duracion);
+      const ocupadoMin = Number(ocupado);
+      if (!duracionMin || duracionMin <= 0 || !ocupadoMin || ocupadoMin < duracionMin) {
+        alert('Introduce minutos validos. El tiempo ocupado debe ser igual o mayor que la duracion del trayecto.');
+        return;
+      }
+      t.duracionMin = duracionMin;
+      t.ocupadoMin = ocupadoMin;
+    }
     t[b.dataset.f] = true;
     setTrips(all);
     push('viajero', t.viajero, `Estado actualizado ${estado(t)}`, t.id);
@@ -383,8 +438,14 @@ function renderMobile(role) {
     if (b.dataset.role === 'viajero') {
       t.cv = false;
       t.ct = false;
+      delete t.duracionMin;
+      delete t.ocupadoMin;
     }
-    if (b.dataset.role === 'taxista') t.ct = false;
+    if (b.dataset.role === 'taxista') {
+      t.ct = false;
+      delete t.duracionMin;
+      delete t.ocupadoMin;
+    }
     setTrips(all);
     if (b.dataset.role === 'viajero') {
       push('viajero', t.viajero, 'Has modificado la reserva. Confirma de nuevo la peticion.', t.id);
@@ -427,6 +488,8 @@ function reassignTrip(id, newDriverUser) {
   t.taxista = driver.user;
   t.taxistaNombre = driver.name;
   t.ct = false;
+  delete t.duracionMin;
+  delete t.ocupadoMin;
   setTrips(all);
   push('taxista', driver.user, `Viaje reasignado por ${previous}. Debes aceptar el viaje.`, t.id);
   render();
@@ -467,10 +530,10 @@ function renderCalendar() {
     html += `<div class="calendar-cell calendar-hour">${hour}</div>`;
     days.forEach(day => {
       const fecha = dateKey(day);
-      const trip = trips().find(t => t.taxista === me && t.fecha === fecha && overlaps(minutes(hour), minutes(hour) + 60, minutes(t.hora), minutes(t.hora) + 60));
+      const trip = trips().find(t => t.taxista === me && t.fecha === fecha && overlaps(minutes(hour), minutes(hour) + 60, minutes(t.hora), minutes(t.hora) + Number(t.ocupadoMin || 60)));
       const slot = slots().find(s => s.taxista === me && s.fecha === fecha && overlaps(minutes(hour), minutes(hour) + 60, minutes(s.inicio), minutes(s.fin)));
       const cls = trip ? 'has-trip' : slot ? 'blocked' : 'empty';
-      const label = trip ? `${trip.hora} ${trip.viajeroNombre || trip.viajero}` : slot ? `${slot.inicio}-${slot.fin} ${slot.titulo || 'Evento'}` : '+ Crear evento';
+      const label = trip ? `${trip.hora}-${addMinutes(trip.hora, trip.ocupadoMin || 60)} ${trip.viajeroNombre || trip.viajero}` : slot ? `${slot.inicio}-${slot.fin} ${slot.titulo || 'Evento'}` : '+ Crear evento';
       html += `<button class="calendar-cell calendar-slot ${cls}" data-fecha="${fecha}" data-hora="${hour}" data-slot-id="${slot ? slot.id : ''}" type="button">${esc(label)}</button>`;
     });
   });
@@ -638,6 +701,8 @@ $('trip-form').onsubmit = e => {
   if (id) {
     const i = all.findIndex(x => x.id === id);
     all[i] = { ...all[i], ...p, cv: false, ct: false };
+    delete all[i].duracionMin;
+    delete all[i].ocupadoMin;
     push('viajero', p.viajero, 'Reserva modificada por organizador. Reconfirmar.', id);
     push('taxista', p.taxista, 'Reserva modificada por organizador. Reconfirmar.', id);
   } else {

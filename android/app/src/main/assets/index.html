@@ -41,8 +41,8 @@
         <nav class="tabs side-menu" aria-label="Menu de organizador">
           <p class="side-title">Organizador</p>
           <button class="tab-btn active" data-tab="asignacion" type="button">Asignacion de viajes</button>
-          <button class="tab-btn" data-tab="solicitudes" type="button">Solicitudes</button>
-          <button class="tab-btn" data-tab="pendientes" type="button">Viajes pendientes</button>
+          <button class="tab-btn" data-tab="solicitudes" type="button">Solicitudes <span id="badge-org-solicitudes" class="badge hidden">0</span></button>
+          <button class="tab-btn" data-tab="pendientes" type="button">Viajes pendientes <span id="badge-org-pendientes" class="badge hidden">0</span></button>
           <button class="tab-btn" data-tab="historico" type="button">Historico</button>
         </nav>
 
@@ -64,10 +64,6 @@
             <button class="wide">Guardar viaje</button>
           </form>
           <p id="mensaje"></p>
-          <table>
-            <thead><tr><th>Persona</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Estado</th><th></th></tr></thead>
-            <tbody id="tabla"></tbody>
-          </table>
         </section>
 
         <section id="org-solicitudes" class="hidden">
@@ -79,7 +75,7 @@
 
         <section id="org-pendientes" class="hidden">
           <table>
-            <thead><tr><th>Persona</th><th>Taxista</th><th>Viaje</th><th>Fecha</th><th>Pendiente de</th><th></th></tr></thead>
+            <thead><tr><th>Persona</th><th>Taxista</th><th>Viaje</th><th>Fecha</th><th>Viajero</th><th>Taxista</th><th>Duracion</th><th></th></tr></thead>
             <tbody id="pendientes"></tbody>
           </table>
         </section>
@@ -130,7 +126,7 @@
       <section id="view-taxista" class="card role-shell hidden">
         <nav class="tabs side-menu" aria-label="Menu de taxista">
           <p class="side-title">Taxista</p>
-          <button class="driver-tab-btn active" data-driver-tab="viajes" type="button">Viajes asignados</button>
+          <button class="driver-tab-btn active" data-driver-tab="viajes" type="button">Viajes asignados <span id="badge-taxi-viajes" class="badge hidden">0</span></button>
           <button class="driver-tab-btn" data-driver-tab="calendario" type="button">Calendario</button>
         </nav>
 

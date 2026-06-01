@@ -39,8 +39,12 @@ button.danger{color:var(--warn);background:var(--warn-soft);border-color:#f0b7b1
 .side-menu{display:flex;flex-direction:column;gap:.35rem;margin:0;padding:1rem;background:#f7fafc;border-right:1px solid var(--line)}
 .side-title{margin:.1rem .35rem .6rem;color:var(--muted);font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em}
 .tab-btn,.driver-tab-btn,.traveler-tab-btn{width:100%;text-align:left;background:transparent;color:var(--ink);border:1px solid transparent}
+.tab-btn,.driver-tab-btn{display:flex;align-items:center;justify-content:space-between;gap:.55rem}
 .tab-btn:hover,.driver-tab-btn:hover,.traveler-tab-btn:hover{background:#eaf2f9;color:var(--brand);transform:none}
 .tab-btn.active,.driver-tab-btn.active,.traveler-tab-btn.active{background:var(--brand);color:#fff;box-shadow:0 10px 22px rgba(15,76,129,.18)}
+.badge{display:inline-grid;place-items:center;min-width:1.45rem;height:1.45rem;padding:0 .38rem;border-radius:999px;background:#d93f32;color:#fff;font-size:.78rem;font-weight:900}
+.active .badge{background:#fff;color:var(--brand)}
+.muted{color:var(--muted)}
 .filters{display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:1rem}
 .grid-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem;margin-bottom:1rem}
 .wide{grid-column:1/-1}
@@ -52,6 +56,10 @@ tr:last-child td{border-bottom:0}
 .trip p{margin:0}
 .actions{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap}
 .confirmed-label{color:var(--ok);background:var(--ok-soft);border:1px solid #9ed7b3;border-radius:999px;padding:.45rem .72rem;font-weight:700}
+.confirm-state{display:inline-flex;align-items:center;gap:.4rem;border-radius:999px;padding:.38rem .62rem;font-weight:800;font-size:.86rem;border:1px solid}
+.confirm-state span{width:.58rem;height:.58rem;border-radius:999px;background:currentColor}
+.confirm-state.ok{color:var(--ok);background:var(--ok-soft);border-color:#9ed7b3}
+.confirm-state.ko{color:var(--warn);background:var(--warn-soft);border-color:#efaaa4}
 .status-list{display:flex;gap:.5rem;flex-wrap:wrap}
 .status-pill{border-radius:999px;padding:.45rem .7rem;font-size:.9rem;border:1px solid;font-weight:700}
 .status-pill.free{background:var(--ok-soft);border-color:#9ed7b3;color:var(--ok)}
