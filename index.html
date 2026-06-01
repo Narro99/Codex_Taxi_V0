@@ -8,7 +8,12 @@
   <link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
-  <header><h1>Taxi Empresa</h1></header>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Panel operativo</p>
+      <h1>Taxi Empresa</h1>
+    </div>
+  </header>
   <main class="container">
     <section id="auth" class="card">
       <h2>Iniciar sesion</h2>
@@ -22,7 +27,7 @@
     </section>
 
     <section id="app" class="hidden">
-      <section class="card">
+      <section class="card app-header">
         <div class="row">
           <div class="brand-row">
             <span id="company-logo" class="company-logo hidden"></span>
@@ -32,14 +37,16 @@
         </div>
       </section>
 
-      <section id="view-organizador" class="card hidden">
-        <nav class="tabs">
+      <section id="view-organizador" class="card role-shell hidden">
+        <nav class="tabs side-menu" aria-label="Menu de organizador">
+          <p class="side-title">Organizador</p>
           <button class="tab-btn active" data-tab="asignacion" type="button">Asignacion de viajes</button>
-          <button class="tab-btn" data-tab="solicitudes" type="button">Solicitudes</button>
-          <button class="tab-btn" data-tab="pendientes" type="button">Viajes pendientes</button>
+          <button class="tab-btn" data-tab="solicitudes" type="button">Solicitudes <span id="badge-org-solicitudes" class="badge hidden">0</span></button>
+          <button class="tab-btn" data-tab="pendientes" type="button">Viajes pendientes <span id="badge-org-pendientes" class="badge hidden">0</span></button>
           <button class="tab-btn" data-tab="historico" type="button">Historico</button>
         </nav>
 
+        <div class="role-content">
         <section id="org-asignacion">
           <form id="trip-form" class="grid-form">
             <input id="trip-id" type="hidden">
@@ -57,10 +64,6 @@
             <button class="wide">Guardar viaje</button>
           </form>
           <p id="mensaje"></p>
-          <table>
-            <thead><tr><th>Persona</th><th>Ruta</th><th>Fecha</th><th>Taxista</th><th>Estado</th><th></th></tr></thead>
-            <tbody id="tabla"></tbody>
-          </table>
         </section>
 
         <section id="org-solicitudes" class="hidden">
@@ -72,7 +75,7 @@
 
         <section id="org-pendientes" class="hidden">
           <table>
-            <thead><tr><th>Persona</th><th>Taxista</th><th>Viaje</th><th>Fecha</th><th>Pendiente de</th><th></th></tr></thead>
+            <thead><tr><th>Persona</th><th>Taxista</th><th>Viaje</th><th>Fecha</th><th>Viajero</th><th>Taxista</th><th>Duracion</th><th></th></tr></thead>
             <tbody id="pendientes"></tbody>
           </table>
         </section>
@@ -88,13 +91,16 @@
             <tbody id="historial"></tbody>
           </table>
         </section>
+        </div>
       </section>
 
-      <section id="view-viajero" class="card hidden">
-        <nav class="tabs">
+      <section id="view-viajero" class="card role-shell hidden">
+        <nav class="tabs side-menu" aria-label="Menu de viajero">
+          <p class="side-title">Viajero</p>
           <button class="traveler-tab-btn active" data-traveler-tab="viajes" type="button">Mis viajes</button>
           <button class="traveler-tab-btn" data-traveler-tab="solicitud" type="button">Solicitud de viaje</button>
         </nav>
+        <div class="role-content">
         <section id="viajero-viajes">
           <h3>Mis viajes</h3>
           <ul id="notif-v"></ul>
@@ -114,14 +120,17 @@
           <h3>Mis solicitudes</h3>
           <div id="request-list"></div>
         </section>
+        </div>
       </section>
 
-      <section id="view-taxista" class="card hidden">
-        <nav class="tabs">
-          <button class="driver-tab-btn active" data-driver-tab="viajes" type="button">Viajes asignados</button>
+      <section id="view-taxista" class="card role-shell hidden">
+        <nav class="tabs side-menu" aria-label="Menu de taxista">
+          <p class="side-title">Taxista</p>
+          <button class="driver-tab-btn active" data-driver-tab="viajes" type="button">Viajes asignados <span id="badge-taxi-viajes" class="badge hidden">0</span></button>
           <button class="driver-tab-btn" data-driver-tab="calendario" type="button">Calendario</button>
         </nav>
 
+        <div class="role-content">
         <section id="taxi-viajes">
           <h3>Viajes asignados</h3>
           <ul id="notif-t"></ul>
@@ -134,9 +143,34 @@
             <h3 id="week-title">Calendario</h3>
             <button id="next-week" type="button">Semana siguiente</button>
           </div>
+          <form id="calendar-event-editor" class="calendar-editor hidden">
+            <input id="event-id" type="hidden">
+            <div>
+              <label for="event-date">Fecha</label>
+              <input id="event-date" type="date" required>
+            </div>
+            <div>
+              <label for="event-start">Inicio</label>
+              <input id="event-start" type="time" required>
+            </div>
+            <div>
+              <label for="event-end">Fin</label>
+              <input id="event-end" type="time" required>
+            </div>
+            <div>
+              <label for="event-title">Evento</label>
+              <input id="event-title" placeholder="Ej. Revision, descanso, guardia" required>
+            </div>
+            <div class="editor-actions">
+              <button type="submit">Guardar evento</button>
+              <button id="cancel-event" class="ghost" type="button">Cancelar</button>
+            </div>
+          </form>
           <div id="calendar-grid" class="calendar-grid"></div>
+          <h3>Eventos del calendario</h3>
           <ul id="driver-slots" class="slot-list"></ul>
         </section>
+        </div>
       </section>
     </section>
   </main>
