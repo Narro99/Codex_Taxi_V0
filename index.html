@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Taxi Empresa</title>
+  <title>Next Transfer</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
   <header class="topbar">
-    <div>
+    <div class="topbar-inner">
+      <img class="app-logo" src="logo.svg" alt="Next Transfer">
+      <div>
       <p class="eyebrow">Panel operativo</p>
-      <h1>Taxi Empresa</h1>
+      <h1>Next Transfer</h1>
+      </div>
     </div>
   </header>
   <main class="container">
@@ -81,13 +84,16 @@
         </section>
 
         <section id="org-historico" class="hidden">
-          <div class="filters">
-            <select id="f-persona"></select>
-            <input id="f-taxista" placeholder="Filtrar por taxista">
-            <input id="f-viaje" placeholder="Filtrar por viaje, ruta o fecha">
-          </div>
           <table>
-            <thead><tr><th>Persona</th><th>Taxista</th><th>Viaje</th><th>Fecha</th><th>Estado</th></tr></thead>
+            <thead>
+              <tr>
+                <th><span>Persona</span><select id="f-persona" class="th-filter"></select></th>
+                <th><span>Taxista</span><input id="f-taxista" class="th-filter" placeholder="Filtrar"></th>
+                <th><span>Viaje</span><input id="f-viaje" class="th-filter" placeholder="Ruta o fecha"></th>
+                <th>Fecha</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
             <tbody id="historial"></tbody>
           </table>
         </section>
@@ -104,7 +110,10 @@
         <section id="viajero-viajes">
           <h3>Mis viajes</h3>
           <ul id="notif-v"></ul>
-          <div id="lista-v"></div>
+          <h4>Viajes siguientes</h4>
+          <div id="lista-v-next"></div>
+          <h4>Viajes pasados</h4>
+          <div id="lista-v-past"></div>
         </section>
         <section id="viajero-solicitud" class="hidden">
           <form id="request-form" class="grid-form">

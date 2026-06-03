@@ -1,6 +1,6 @@
 {
-  "name": "Taxi Empresa",
-  "short_name": "TaxiApp",
+  "name": "Next Transfer",
+  "short_name": "NextTransfer",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f7fb",

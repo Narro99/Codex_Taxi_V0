@@ -1,5 +1,5 @@
-const CACHE = 'taxi-empresa-v5';
-const ASSETS = ['./','./index.html','./styles.css','./app.js','./manifest.webmanifest'];
+const CACHE = 'next-transfer-v1';
+const ASSETS = ['./','./index.html','./styles.css','./app.js','./logo.svg','./manifest.webmanifest'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))));
