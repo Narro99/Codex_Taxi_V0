@@ -1,0 +1,11 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Next Transfer</title>
+  <desc id="desc">Logo de Next Transfer con una ruta dinamica dentro de un escudo redondeado.</desc>
+  <rect width="160" height="160" rx="34" fill="#0F4C81"/>
+  <path d="M38 105C53 77 72 58 101 49" stroke="#D7F2FF" stroke-width="12" stroke-linecap="round"/>
+  <path d="M92 33L126 44L103 72" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="43" cy="108" r="12" fill="#22C55E" stroke="#FFFFFF" stroke-width="6"/>
+  <circle cx="119" cy="49" r="10" fill="#FFFFFF"/>
+  <path d="M52 114H108" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" opacity=".22"/>
+  <text x="80" y="134" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="800">NT</text>
+</svg>

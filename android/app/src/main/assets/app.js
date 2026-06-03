@@ -11,16 +11,16 @@ const USERS = [
 ];
 
 const WORKERS = [
-  { user: 'viajero1', name: 'Laura Martin', company: 'org1', homes: ['Calle Mayor 18, Madrid', 'Paseo de la Castellana 92, Madrid'] },
-  { user: 'viajero2', name: 'Diego Salas', company: 'org1', homes: ['Avenida de America 31, Madrid'] },
-  { user: 'viajero3', name: 'Marta Echevarria', company: 'org2', homes: ['Calle Ercilla 14, Bilbao'] },
-  { user: 'viajero4', name: 'Unai Torres', company: 'org2', homes: ['Paseo de Francia 6, Donostia'] }
+  { user: 'viajero1', name: 'Laura Martin', phone: '+34 611 204 118', company: 'org1', homes: ['Calle Mayor 18, Madrid', 'Paseo de la Castellana 92, Madrid'] },
+  { user: 'viajero2', name: 'Diego Salas', phone: '+34 622 815 442', company: 'org1', homes: ['Avenida de America 31, Madrid'] },
+  { user: 'viajero3', name: 'Marta Echevarria', phone: '+34 633 490 275', company: 'org2', homes: ['Calle Ercilla 14, Bilbao'] },
+  { user: 'viajero4', name: 'Unai Torres', phone: '+34 644 732 901', company: 'org2', homes: ['Paseo de Francia 6, Donostia'] }
 ];
 
 const TAXISTAS = [
-  { user: 'taxi1', name: 'Carlos Ruiz' },
-  { user: 'taxi2', name: 'Nerea Vidal' },
-  { user: 'taxi3', name: 'Omar Benali' }
+  { user: 'taxi1', name: 'Carlos Ruiz', phone: '+34 699 120 451' },
+  { user: 'taxi2', name: 'Nerea Vidal', phone: '+34 688 305 774' },
+  { user: 'taxi3', name: 'Omar Benali', phone: '+34 677 914 238' }
 ];
 
 const K = {
@@ -84,11 +84,26 @@ function companyFor(user) {
 }
 
 function workerByUser(user) {
-  return workers().find(x => x.user === user);
+  const stored = workers().find(x => x.user === user);
+  const base = WORKERS.find(x => x.user === user);
+  if (stored && base) return { ...base, ...stored, phone: stored.phone || base.phone };
+  return stored || base;
 }
 
 function driverByUser(user) {
   return TAXISTAS.find(x => x.user === user);
+}
+
+function workerPhone(v) {
+  return v.viajeroPhone || workerByUser(v.viajero)?.phone || '';
+}
+
+function driverPhone(v) {
+  return v.taxistaPhone || driverByUser(v.taxista)?.phone || '';
+}
+
+function contactLine(label, phone) {
+  return phone ? `<span class="contact-line">${esc(label)}: <a href="tel:${esc(phone.replace(/\s/g, ''))}">${esc(phone)}</a></span>` : '';
 }
 
 function minutes(hora) {
@@ -326,7 +341,7 @@ function renderHistory() {
   body.innerHTML = data.length ? '' : '<tr><td colspan="5">Sin resultados</td></tr>';
   data.forEach(v => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${v.viajeroNombre || v.viajero}</td><td>${v.taxistaNombre || v.taxista}</td><td>${v.domicilio} - ${v.aeropuerto}</td><td>${v.fecha} ${v.hora}</td><td>${estado(v)}</td>`;
+    tr.innerHTML = `<td>${esc(v.viajeroNombre || v.viajero)}${contactLine('Tel.', workerPhone(v))}</td><td>${esc(v.taxistaNombre || v.taxista)}${contactLine('Tel.', driverPhone(v))}</td><td>${esc(v.domicilio)} - ${esc(v.aeropuerto)}</td><td>${esc(v.fecha)} ${esc(v.hora)}</td><td>${estado(v)}</td>`;
     body.appendChild(tr);
   });
 }
@@ -338,7 +353,7 @@ function renderPendingTrips() {
   body.innerHTML = data.length ? '' : '<tr><td colspan="8">No hay viajes pendientes de confirmar</td></tr>';
   data.forEach(v => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${esc(v.viajeroNombre || v.viajero)}</td><td>${esc(v.taxistaNombre || v.taxista)}</td><td>${esc(v.domicilio)} - ${esc(v.aeropuerto)}</td><td>${esc(v.fecha)} ${esc(v.hora)}</td><td>${statusDot('Viajero', v.cv)}</td><td>${statusDot('Taxista', v.ct)}</td><td>${durationSummary(v)}</td><td><button data-id="${v.id}" class="edit-pending">Editar</button></td>`;
+    tr.innerHTML = `<td>${esc(v.viajeroNombre || v.viajero)}${contactLine('Tel.', workerPhone(v))}</td><td>${esc(v.taxistaNombre || v.taxista)}${contactLine('Tel.', driverPhone(v))}</td><td>${esc(v.domicilio)} - ${esc(v.aeropuerto)}</td><td>${esc(v.fecha)} ${esc(v.hora)}</td><td>${statusDot('Viajero', v.cv)}</td><td>${statusDot('Taxista', v.ct)}</td><td>${durationSummary(v)}</td><td><button data-id="${v.id}" class="edit-pending">Editar</button></td>`;
     body.appendChild(tr);
   });
   document.querySelectorAll('.edit-pending').forEach(b => {
@@ -353,7 +368,8 @@ function renderOrgRequests() {
   body.innerHTML = data.length ? '' : '<tr><td colspan="5">No hay solicitudes pendientes</td></tr>';
   data.forEach(r => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${r.viajeroNombre || r.viajero}</td><td>${r.domicilio} - ${r.aeropuerto}<br>${r.fecha} ${r.hora}</td><td>${r.taxistaNombre || 'Sin preferencia'}</td><td>Pendiente de aceptar</td><td><button class="accept-request" data-id="${r.id}">Aceptar</button></td>`;
+    const preferredPhone = r.taxista ? driverPhone(r) : '';
+    tr.innerHTML = `<td>${esc(r.viajeroNombre || r.viajero)}${contactLine('Tel.', workerPhone(r))}</td><td>${esc(r.domicilio)} - ${esc(r.aeropuerto)}<br>${esc(r.fecha)} ${esc(r.hora)}</td><td>${esc(r.taxistaNombre || 'Sin preferencia')}${contactLine('Tel.', preferredPhone)}</td><td>Pendiente de aceptar</td><td><button class="accept-request" data-id="${r.id}">Aceptar</button></td>`;
     body.appendChild(tr);
   });
   document.querySelectorAll('.accept-request').forEach(b => {
@@ -373,12 +389,14 @@ function acceptRequest(id) {
     empresa: r.empresa,
     viajero: r.viajero,
     viajeroNombre: r.viajeroNombre,
+    viajeroPhone: r.viajeroPhone || workerPhone(r),
     domicilio: r.domicilio,
     aeropuerto: r.aeropuerto,
     fecha: r.fecha,
     hora: r.hora,
     taxista: driver.user,
     taxistaNombre: driver.name,
+    taxistaPhone: driver.phone,
     requestId: r.id,
     cv: true,
     ct: false
@@ -401,7 +419,10 @@ function card(v, role) {
     ? `<details class="driver-menu"><summary>Asignar a otro conductor</summary><div class="driver-menu-list">${TAXISTAS.filter(t => t.user !== v.taxista).map(t => `<button class="reassign-option" data-id="${v.id}" data-driver="${t.user}" type="button">${t.name}<span>${t.user}</span></button>`).join('')}</div></details>`
     : '';
   const duration = role === 'taxista' && v.ct ? `<p class="muted">Trayecto ${v.duracionMin || '-'} min · ocupado hasta ${v.ocupadoMin ? addMinutes(v.hora, v.ocupadoMin) : '-'}</p>` : '';
-  return `<article class="trip"><p><b>${esc(v.domicilio)}</b> - ${esc(v.aeropuerto)}</p><p>${esc(v.fecha)} ${esc(v.hora)} - ${estado(v)}</p>${duration}<div class="actions">${confirm}<button class="edit-address ghost" data-id="${v.id}" data-role="${role}">Modificar domicilio</button><button class="edit-time ghost" data-id="${v.id}" data-role="${role}">Modificar hora</button></div>${reassign}</article>`;
+  const contact = role === 'viajero'
+    ? `<p>${esc(v.taxistaNombre || v.taxista)}${contactLine('Tel. taxista', driverPhone(v))}</p>`
+    : `<p>${esc(v.viajeroNombre || v.viajero)}${contactLine('Tel. viajero', workerPhone(v))}</p>`;
+  return `<article class="trip"><p><b>${esc(v.domicilio)}</b> - ${esc(v.aeropuerto)}</p><p>${esc(v.fecha)} ${esc(v.hora)} - ${estado(v)}</p>${contact}${duration}<div class="actions">${confirm}<button class="edit-address ghost" data-id="${v.id}" data-role="${role}">Modificar domicilio</button><button class="edit-time ghost" data-id="${v.id}" data-role="${role}">Modificar hora</button></div>${reassign}</article>`;
 }
 
 function resetTripConfirmation(t, role) {
@@ -426,10 +447,18 @@ function notifyTripEdit(t, role, detail) {
 
 function renderMobile(role) {
   const me = session().u;
-  const mine = trips().filter(t => t[role] === me);
+  const mine = trips().filter(t => t[role] === me).sort((a, b) => tripDate(a) - tripDate(b));
   const l = role === 'viajero' ? 'lista-v' : 'lista-t';
   const nl = role === 'viajero' ? 'notif-v' : 'notif-t';
-  $(l).innerHTML = mine.map(v => card(v, role)).join('') || '<p>Sin viajes</p>';
+  if (role === 'viajero') {
+    const now = new Date();
+    const upcoming = mine.filter(v => tripDate(v) > now);
+    const past = mine.filter(v => tripDate(v) <= now).sort((a, b) => tripDate(b) - tripDate(a));
+    $('lista-v-next').innerHTML = upcoming.map(v => card(v, role)).join('') || '<p>Sin viajes siguientes</p>';
+    $('lista-v-past').innerHTML = past.map(v => card(v, role)).join('') || '<p>Sin viajes pasados</p>';
+  } else {
+    $(l).innerHTML = mine.map(v => card(v, role)).join('') || '<p>Sin viajes</p>';
+  }
   $(nl).innerHTML = notifs().filter(n => n.role === role && n.user === me).map(n => `<li>${n.text}</li>`).join('') || '<li>Sin notificaciones</li>';
   renderMenuBadges();
 
@@ -492,7 +521,7 @@ function renderTravelerRequests() {
   if (!$('request-list')) return;
   const me = session().u;
   const list = requests().filter(r => r.viajero === me).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  $('request-list').innerHTML = list.map(r => `<article class="trip"><p><b>${r.domicilio}</b> - ${r.aeropuerto}</p><p>${r.fecha} ${r.hora} - ${r.status}</p><p>Taxista preferido: ${r.taxistaNombre || 'Sin preferencia'}</p></article>`).join('') || '<p>Sin solicitudes</p>';
+  $('request-list').innerHTML = list.map(r => `<article class="trip"><p><b>${esc(r.domicilio)}</b> - ${esc(r.aeropuerto)}</p><p>${esc(r.fecha)} ${esc(r.hora)} - ${esc(r.status)}</p><p>Taxista preferido: ${esc(r.taxistaNombre || 'Sin preferencia')}${contactLine('Tel. taxista', driverPhone(r))}</p></article>`).join('') || '<p>Sin solicitudes</p>';
 }
 
 function reassignTrip(id, newDriverUser) {
@@ -504,6 +533,7 @@ function reassignTrip(id, newDriverUser) {
   const previous = t.taxista;
   t.taxista = driver.user;
   t.taxistaNombre = driver.name;
+  t.taxistaPhone = driver.phone;
   t.ct = false;
   delete t.duracionMin;
   delete t.ocupadoMin;
@@ -727,12 +757,14 @@ $('request-form').onsubmit = e => {
     empresa: company.empresa,
     viajero: worker.user,
     viajeroNombre: worker.name,
+    viajeroPhone: worker.phone,
     domicilio,
     aeropuerto: $('request-airport').value.trim(),
     fecha: $('request-date').value,
     hora: $('request-time').value,
     taxista: driver ? driver.user : '',
     taxistaNombre: driver ? driver.name : '',
+    taxistaPhone: driver ? driver.phone : '',
     status: 'pendiente',
     createdAt: new Date().toISOString()
   };
@@ -760,12 +792,14 @@ $('trip-form').onsubmit = e => {
     empresa: companyFor(s.u).empresa,
     viajero: worker.user,
     viajeroNombre: worker.name,
+    viajeroPhone: worker.phone,
     domicilio,
     aeropuerto: $('aeropuerto').value.trim(),
     fecha: $('fecha').value,
     hora: $('hora').value,
     taxista: driver.user,
-    taxistaNombre: driver.name
+    taxistaNombre: driver.name,
+    taxistaPhone: driver.phone
   };
   const all = trips();
   if (id) {

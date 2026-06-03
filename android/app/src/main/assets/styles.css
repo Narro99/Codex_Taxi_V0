@@ -16,8 +16,10 @@
 *{box-sizing:border-box}
 body{font-family:Inter,Segoe UI,Arial,sans-serif;margin:0;background:linear-gradient(180deg,#f7fbff 0,var(--bg) 42%);color:var(--ink)}
 .topbar{background:linear-gradient(135deg,var(--brand),#1b6fa8);color:#fff;padding:1.25rem 1rem 2.5rem}
-.topbar h1{margin:.2rem auto 0;max-width:1180px;font-size:1.8rem;letter-spacing:.01em}
-.eyebrow{max-width:1180px;margin:0 auto;color:#cfe5f8;text-transform:uppercase;font-size:.74rem;font-weight:700;letter-spacing:.12em}
+.topbar-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:.85rem}
+.app-logo{width:54px;height:54px;flex:0 0 auto}
+.topbar h1{margin:.2rem 0 0;font-size:1.8rem;letter-spacing:.01em}
+.eyebrow{margin:0;color:#cfe5f8;text-transform:uppercase;font-size:.74rem;font-weight:700;letter-spacing:.12em}
 .container{max-width:1180px;margin:-1.35rem auto 1.5rem;padding:0 1rem}
 .card{background:rgba(255,255,255,.98);border:1px solid rgba(220,229,239,.85);border-radius:8px;padding:1rem;margin-bottom:1rem;box-shadow:var(--shadow)}
 .app-header{padding:1rem 1.1rem}
@@ -51,9 +53,14 @@ button.danger{color:var(--warn);background:var(--warn-soft);border-color:#f0b7b1
 table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
 th,td{border-bottom:1px solid var(--line);padding:.72rem;text-align:left;vertical-align:top}
 th{background:#f5f8fb;color:#526273;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+th span{display:block;margin-bottom:.35rem}
+.th-filter{width:100%;min-width:150px;padding:.48rem .55rem;border-radius:6px;text-transform:none;letter-spacing:0;font-size:.86rem;font-weight:500}
 tr:last-child td{border-bottom:0}
 .trip{border:1px solid var(--line);background:#fff;padding:.9rem;border-radius:8px;margin:.6rem 0;display:grid;gap:.5rem;box-shadow:0 6px 18px rgba(23,32,51,.05)}
 .trip p{margin:0}
+.contact-line{display:block;margin-top:.22rem;color:var(--muted);font-size:.88rem;font-weight:600}
+.contact-line a{color:var(--brand);text-decoration:none}
+.contact-line a:hover{text-decoration:underline}
 .actions{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap}
 .confirmed-label{color:var(--ok);background:var(--ok-soft);border:1px solid #9ed7b3;border-radius:999px;padding:.45rem .72rem;font-weight:700}
 .confirm-state{display:inline-flex;align-items:center;gap:.4rem;border-radius:999px;padding:.38rem .62rem;font-weight:800;font-size:.86rem;border:1px solid}
